@@ -22,8 +22,8 @@ public class CreateSessionIntegrationTests
 
         // Act & Assert
         request.Should().NotBeNull();
-        request.MovieTitle.Should().Equal("The Matrix");
-        request.RoomNumber.Should().Equal("A1");
+        request.MovieTitle.Should().Be("The Matrix");
+        request.RoomNumber.Should().Be("A1");
         request.TotalSeats.Should().Be(100);
         request.TicketPrice.Should().Be(25.50m);
     }
