@@ -1,5 +1,6 @@
-using ReservaCinema.Application.Entities;
+using Microsoft.EntityFrameworkCore;
 using ReservaCinema.Application.Persistence.Repositories;
+using ReservaCinema.Domain.Entities;
 
 namespace ReservaCinema.Infrastructure.Persistence.Repositories;
 

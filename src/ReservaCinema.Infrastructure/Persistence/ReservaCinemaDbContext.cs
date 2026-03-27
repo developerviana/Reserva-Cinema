@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ReservaCinema.Application.Entities;
+using ReservaCinema.Domain.Entities;
 
 namespace ReservaCinema.Infrastructure.Persistence;
 

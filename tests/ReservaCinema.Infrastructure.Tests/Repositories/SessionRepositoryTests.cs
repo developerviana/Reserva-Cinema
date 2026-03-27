@@ -1,5 +1,5 @@
 using Moq;
-using ReservaCinema.Domain.Repositories;
+using ReservaCinema.Domain.Entities;
 using ReservaCinema.Tests.Shared.Builders;
 using ReservaCinema.Tests.Shared.Mocks;
 
