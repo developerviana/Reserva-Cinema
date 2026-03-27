@@ -8,7 +8,7 @@ public class Session
     /// <summary>
     /// ID único da sessão.
     /// </summary>
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Título do filme exibido.
