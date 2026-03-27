@@ -3,7 +3,7 @@ using Xunit;
 
 namespace ReservaCinema.API.Tests.Sessions;			
 
-public class CreateSessionRequestTests
+public class CreateSessionTests
 {
     [Fact]
     public void CreateSessionRequest_WithValidData_ShouldBeValid()

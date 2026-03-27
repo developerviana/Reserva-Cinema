@@ -1,56 +1,45 @@
+using FluentValidation;
 using ReservaCinema.Application.DTOs.Sessions;
-using ReservaCinema.Application.Validators.Sessions;
 
 namespace ReservaCinema.Application.Validators.Sessions;
 
-public class CreateSessionRequestValidator
+/// <summary>
+/// Validador para CreateSessionRequest usando FluentValidation.
+/// </summary>
+public class CreateSessionRequestValidator : AbstractValidator<CreateSessionRequest>
 {
-    public ValidationResult Validate(CreateSessionRequest? request)
+    public CreateSessionRequestValidator()
     {
-        var result = new ValidationResult { IsValid = true };
+        RuleFor(x => x.MovieTitle)
+            .NotEmpty()
+            .WithMessage("O título do filme é obrigatório")
+            .MinimumLength(3)
+            .WithMessage("O título do filme deve ter no mínimo 3 caracteres")
+            .MaximumLength(255)
+            .WithMessage("O título do filme não pode exceder 255 caracteres");
 
-        if (request == null)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "Request", Message = "Request cannot be null" });
-            return result;
-        }
+        RuleFor(x => x.StartTime)
+            .GreaterThan(DateTime.UtcNow)
+            .WithMessage("O horário da sessão não pode ser no passado");
 
-        // MovieTitle validation
-        if (string.IsNullOrWhiteSpace(request.MovieTitle))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "MovieTitle", Message = "MovieTitle is required" });
-        }
+        RuleFor(x => x.RoomNumber)
+            .NotEmpty()
+            .WithMessage("O número da sala é obrigatório")
+            .MinimumLength(2)
+            .WithMessage("O número da sala deve ter no mínimo 2 caracteres")
+            .MaximumLength(10)
+            .WithMessage("O número da sala não pode exceder 10 caracteres");
 
-        // StartTime validation
-        if (request.StartTime < DateTime.UtcNow)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "StartTime", Message = "StartTime must be in the future" });
-        }
+        RuleFor(x => x.TotalSeats)
+            .GreaterThan(0)
+            .WithMessage("O total de assentos deve ser maior que 0")
+            .LessThanOrEqualTo(10000)
+            .WithMessage("O total de assentos não pode exceder 10.000");
 
-        // RoomNumber validation
-        if (string.IsNullOrWhiteSpace(request.RoomNumber) || request.RoomNumber.Length < 2)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "RoomNumber", Message = "RoomNumber must have at least 2 characters" });
-        }
-
-        // TotalSeats validation
-        if (request.TotalSeats <= 0)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "TotalSeats", Message = "TotalSeats must be greater than 0" });
-        }
-
-        // TicketPrice validation
-        if (request.TicketPrice < 0)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "TicketPrice", Message = "TicketPrice cannot be negative" });
-        }
-
-        return result;
+        RuleFor(x => x.TicketPrice)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("O preço do ingresso não pode ser negativo")
+            .LessThanOrEqualTo(999.99m)
+            .WithMessage("O preço do ingresso não pode exceder R$ 999,99");
     }
 }
