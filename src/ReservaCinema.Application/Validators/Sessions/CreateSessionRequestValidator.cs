@@ -1,7 +1,7 @@
-using ReservaCinema.API.DTOs.Sessions;
-using ReservaCinema.API.Validators.Sessions;
+using ReservaCinema.Application.DTOs.Sessions;
+using ReservaCinema.Application.Validators.Sessions;
 
-namespace ReservaCinema.API.Validators.Sessions;
+namespace ReservaCinema.Application.Validators.Sessions;
 
 public class CreateSessionRequestValidator
 {

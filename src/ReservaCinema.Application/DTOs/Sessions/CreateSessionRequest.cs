@@ -1,4 +1,4 @@
-namespace ReservaCinema.API.DTOs.Sessions;
+namespace ReservaCinema.Application.DTOs.Sessions;
 
 public class CreateSessionRequest
 {

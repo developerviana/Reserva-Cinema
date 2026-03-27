@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ReservaCinema.API\ReservaCinema.API.csproj" />
+    <ProjectReference Include="..\..\src\ReservaCinema.Application\ReservaCinema.Application.csproj" />
+  </ItemGroup>
+
 </Project>

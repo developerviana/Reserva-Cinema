@@ -1,7 +1,7 @@
-using System;
+using ReservaCinema.Application.DTOs.Sessions;
 using Xunit;
 
-namespace ReservaCinema.API.Tests.Sessions;
+namespace ReservaCinema.API.Tests.Sessions;			
 
 public class CreateSessionRequestTests
 {
@@ -130,14 +130,4 @@ public class CreateSessionRequestTests
         // Act & Assert
         Assert.True(request.TicketPrice >= 0, "TicketPrice can be 0");
     }
-}
-
-// DTO que será implementado
-public class CreateSessionRequest
-{
-    public string MovieTitle { get; set; }
-    public DateTime StartTime { get; set; }
-    public string RoomNumber { get; set; }
-    public int TotalSeats { get; set; }
-    public double TicketPrice { get; set; }
 }

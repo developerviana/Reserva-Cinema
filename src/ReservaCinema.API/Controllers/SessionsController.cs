@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ReservaCinema.API.DTOs.Sessions;
-using ReservaCinema.API.Validators.Sessions;
+using ReservaCinema.Application.DTOs.Sessions;
+using ReservaCinema.Application.Validators.Sessions;
 
 namespace ReservaCinema.API.Controllers;
 
@@ -13,7 +13,6 @@ public class SessionsController : ControllerBase
     [HttpPost]
     public IActionResult CreateSession([FromBody] CreateSessionRequest request)
     {
-        // Validar
         var validationResult = _validator.Validate(request);
 
         if (!validationResult.IsValid)
@@ -21,7 +20,6 @@ public class SessionsController : ControllerBase
             return BadRequest(new { errors = validationResult.Errors });
         }
 
-        // TODO: Implementar lógica de criação de sessão
         return CreatedAtAction(nameof(CreateSession), new { message = "Session created successfully", request });
     }
 }

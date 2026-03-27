@@ -1,4 +1,4 @@
-namespace ReservaCinema.API.Validators.Sessions;
+namespace ReservaCinema.Application.Validators.Sessions;
 
 public class ValidationResult
 {

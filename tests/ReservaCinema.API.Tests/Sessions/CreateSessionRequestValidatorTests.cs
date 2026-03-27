@@ -1,3 +1,5 @@
+using ReservaCinema.Application.DTOs.Sessions;
+using ReservaCinema.Application.Validators.Sessions;
 using Xunit;
 
 namespace ReservaCinema.API.Tests.Sessions;
@@ -221,63 +223,5 @@ public class CreateSessionRequestValidatorTests
 
         // Assert
         Assert.True(result.IsValid, "TicketPrice can be 0");
-    }
-}
-
-// Clase validadora que será implementada
-public class ValidationResult
-{
-    public bool IsValid { get; set; }
-    public List<ValidationError> Errors { get; set; } = new();
-}
-
-public class ValidationError
-{
-    public string PropertyName { get; set; }
-    public string Message { get; set; }
-}
-
-public class CreateSessionRequestValidator
-{
-    public ValidationResult Validate(CreateSessionRequest request)
-    {
-        var result = new ValidationResult { IsValid = true };
-
-        // MovieTitle validation
-        if (string.IsNullOrWhiteSpace(request?.MovieTitle))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "MovieTitle", Message = "MovieTitle is required" });
-        }
-
-        // StartTime validation
-        if (request?.StartTime < DateTime.UtcNow)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "StartTime", Message = "StartTime must be in the future" });
-        }
-
-        // RoomNumber validation
-        if (string.IsNullOrWhiteSpace(request?.RoomNumber) || request.RoomNumber.Length < 2)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "RoomNumber", Message = "RoomNumber must have at least 2 characters" });
-        }
-
-        // TotalSeats validation
-        if (request?.TotalSeats <= 0)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "TotalSeats", Message = "TotalSeats must be greater than 0" });
-        }
-
-        // TicketPrice validation
-        if (request?.TicketPrice < 0)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { PropertyName = "TicketPrice", Message = "TicketPrice cannot be negative" });
-        }
-
-        return result;
     }
 }
