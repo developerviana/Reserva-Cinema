@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ReservaCinema.Application\ReservaCinema.Application.csproj" />
     <ProjectReference Include="..\..\src\ReservaCinema.Domain\ReservaCinema.Domain.csproj" />
+    <ProjectReference Include="..\ReservaCinema.Tests.Shared\ReservaCinema.Tests.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,7 @@
 using ReservaCinema.Application.DTOs.Sessions;
+using ReservaCinema.Application.Persistence.Repositories;
 using ReservaCinema.Application.Services.Interfaces;
+using ReservaCinema.Domain.Entities;
 
 namespace ReservaCinema.Application.Services;
 
@@ -8,15 +10,19 @@ namespace ReservaCinema.Application.Services;
 /// </summary>
 public class SessionService : ISessionService
 {
-    // TODO: Injetar repositório aqui para persistência em banco de dados
-    private readonly List<SessionResponse> _sessions = new();
+    private readonly ISessionRepository _repository;
+
+    public SessionService(ISessionRepository repository)
+    {
+        _repository = repository;
+    }
 
     /// <summary>
     /// Cria uma nova sessão de cinema.
     /// </summary>
     public async Task<SessionResponse> CreateSessionAsync(CreateSessionRequest request)
     {
-        var session = new SessionResponse
+        var session = new Session
         {
             Id = Guid.NewGuid(),
             MovieTitle = request.MovieTitle,
@@ -28,8 +34,9 @@ public class SessionService : ISessionService
             CreatedAt = DateTime.UtcNow
         };
 
-        _sessions.Add(session);
-        return await Task.FromResult(session);
+        var createdSession = await _repository.AddAsync(session);
+
+        return MapToResponse(createdSession);
     }
 
     /// <summary>
@@ -37,8 +44,8 @@ public class SessionService : ISessionService
     /// </summary>
     public async Task<SessionResponse?> GetSessionByIdAsync(Guid id)
     {
-        var session = _sessions.FirstOrDefault(s => s.Id == id);
-        return await Task.FromResult(session);
+        var session = await _repository.GetByIdAsync(id);
+        return session == null ? null : MapToResponse(session);
     }
 
     /// <summary>
@@ -46,7 +53,8 @@ public class SessionService : ISessionService
     /// </summary>
     public async Task<IEnumerable<SessionResponse>> GetAllSessionsAsync()
     {
-        return await Task.FromResult(_sessions.AsEnumerable());
+        var sessions = await _repository.GetAllAsync();
+        return sessions.Select(MapToResponse).ToList();
     }
 
     /// <summary>
@@ -54,17 +62,20 @@ public class SessionService : ISessionService
     /// </summary>
     public async Task<SessionResponse?> UpdateSessionAsync(Guid id, CreateSessionRequest request)
     {
-        var session = _sessions.FirstOrDefault(s => s.Id == id);
+        var session = await _repository.GetByIdAsync(id);
         if (session == null)
-            return await Task.FromResult<SessionResponse?>(null);
+            return null;
 
         session.MovieTitle = request.MovieTitle;
         session.StartTime = request.StartTime;
         session.RoomNumber = request.RoomNumber;
         session.TotalSeats = request.TotalSeats;
         session.TicketPrice = request.TicketPrice;
+        session.UpdatedAt = DateTime.UtcNow;
 
-        return await Task.FromResult(session);
+        await _repository.UpdateAsync(session);
+
+        return MapToResponse(session);
     }
 
     /// <summary>
@@ -72,11 +83,26 @@ public class SessionService : ISessionService
     /// </summary>
     public async Task<bool> DeleteSessionAsync(Guid id)
     {
-        var session = _sessions.FirstOrDefault(s => s.Id == id);
+        var session = await _repository.GetByIdAsync(id);
         if (session == null)
-            return await Task.FromResult(false);
+            return false;
 
-        _sessions.Remove(session);
-        return await Task.FromResult(true);
+        await _repository.DeleteAsync(id);
+        return true;
+    }
+
+    private static SessionResponse MapToResponse(Session session)
+    {
+        return new SessionResponse
+        {
+            Id = session.Id,
+            MovieTitle = session.MovieTitle,
+            StartTime = session.StartTime,
+            RoomNumber = session.RoomNumber,
+            TotalSeats = session.TotalSeats,
+            AvailableSeats = session.AvailableSeats,
+            TicketPrice = session.TicketPrice,
+            CreatedAt = session.CreatedAt
+        };
     }
 }
