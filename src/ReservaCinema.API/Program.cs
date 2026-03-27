@@ -55,20 +55,22 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+app.UseStaticFiles();
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Reserva Cinema API v1");
-        options.RoutePrefix = string.Empty;
-        options.DocumentTitle = "Reserva Cinema API - Swagger";
-        options.DefaultModelsExpandDepth(2);
-        options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
-    });
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Reserva Cinema API v1");
+    options.RoutePrefix = string.Empty;
+    options.DocumentTitle = "Reserva Cinema API - Swagger";
+    options.DefaultModelsExpandDepth(2);
+    options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+});
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
