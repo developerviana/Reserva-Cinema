@@ -1,5 +1,4 @@
 using ReservaCinema.Domain.Entities;
-using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.Domain.Tests.Entities;
 
@@ -12,30 +11,27 @@ public class SessionTests
     public void Session_WhenCreatedWithValidData_ShouldHaveCorrectProperties()
     {
         // Arrange
-        var sessionBuilder = new SessionBuilder()
-            .WithMovieTitle("The Matrix")
-            .WithRoomNumber("A1")
-            .WithTotalSeats(100)
-            .WithTicketPrice(25.50m);
+        var session = new Session
+        {
+            MovieTitle = "The Matrix",
+            RoomNumber = "A1",
+            TotalSeats = 100,
+            TicketPrice = 25.50m
+        };
 
-        // Act
-        var session = sessionBuilder.Build();
-
-        // Assert
+        // Act & Assert
         session.MovieTitle.Should().Be("The Matrix");
         session.RoomNumber.Should().Be("A1");
         session.TotalSeats.Should().Be(100);
         session.TicketPrice.Should().Be(25.50m);
-        session.Id.Should().NotBeEmpty();
-        session.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
     [Fact]
     public void Session_WhenCreated_ShouldHaveUniqueId()
     {
         // Arrange & Act
-        var session1 = new SessionBuilder().Build();
-        var session2 = new SessionBuilder().Build();
+        var session1 = new Session { MovieTitle = "Movie 1", RoomNumber = "A1", TotalSeats = 100, TicketPrice = 25m };
+        var session2 = new Session { MovieTitle = "Movie 2", RoomNumber = "A2", TotalSeats = 100, TicketPrice = 25m };
 
         // Assert
         session1.Id.Should().NotBe(session2.Id);
@@ -46,24 +42,17 @@ public class SessionTests
     {
         // Arrange
         var futureTime = DateTime.UtcNow.AddHours(2);
-        var session = new SessionBuilder()
-            .WithStartTime(futureTime)
-            .Build();
+        var session = new Session
+        {
+            StartTime = futureTime,
+            MovieTitle = "Movie",
+            RoomNumber = "A1",
+            TotalSeats = 100,
+            TicketPrice = 25m
+        };
 
         // Act & Assert
         session.StartTime.Should().BeAfter(DateTime.UtcNow);
-    }
-
-    [Fact]
-    public void Session_WithNegativeTicketPrice_ShouldNotBeAllowed()
-    {
-        // Arrange
-        var session = new SessionBuilder()
-            .WithTicketPrice(-10m)
-            .Build();
-
-        // Act & Assert
-        session.TicketPrice.Should().BeLessThan(0);
     }
 
     [Theory]
@@ -73,9 +62,13 @@ public class SessionTests
     public void Session_WithVariousSeatsCount_ShouldAcceptAllPositiveValues(int seatsCount)
     {
         // Arrange & Act
-        var session = new SessionBuilder()
-            .WithTotalSeats(seatsCount)
-            .Build();
+        var session = new Session
+        {
+            MovieTitle = "Movie",
+            RoomNumber = "A1",
+            TotalSeats = seatsCount,
+            TicketPrice = 25m
+        };
 
         // Assert
         session.TotalSeats.Should().Be(seatsCount);

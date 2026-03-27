@@ -3,11 +3,11 @@ using ReservaCinema.Application.DTOs.Sessions;
 namespace ReservaCinema.Tests.Shared.Builders;
 
 /// <summary>
-/// Builder para criar CreateSessionRequest em testes.
+/// Builder para construir instâncias de CreateSessionRequest em testes.
 /// </summary>
 public class CreateSessionRequestBuilder
 {
-    private string _movieTitle = "Test Movie";
+    private string _movieTitle = "Default Movie";
     private DateTime _startTime = DateTime.UtcNow.AddHours(1);
     private string _roomNumber = "A1";
     private int _totalSeats = 100;

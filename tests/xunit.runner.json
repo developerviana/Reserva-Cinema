@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <appSettings>
-    <!-- Configuração para xUnit -->
-    <!-- ParallelizeAssembly: Executar assemblies em paralelo -->
-    <!-- MaxParallelThreads: Número máximo de threads paralelos (0 = sem limite) -->
-  </appSettings>
-</configuration>
