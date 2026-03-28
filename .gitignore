@@ -13,7 +13,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.slnx
 
 # Build results
 [Dd]ebug/
@@ -33,6 +32,9 @@ bld/
 
 # Visual Studio cache/options directory
 .vs/
+
+# GitHub
+.github/
 
 # Visual Studio Code
 .vscode/

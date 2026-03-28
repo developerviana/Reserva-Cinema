@@ -3,7 +3,7 @@ using Xunit;
 
 namespace ReservaCinema.API.Tests.Sessions;			
 
-public class CreateSessionRequestTests
+public class CreateSessionTests
 {
     [Fact]
     public void CreateSessionRequest_WithValidData_ShouldBeValid()
@@ -16,7 +16,7 @@ public class CreateSessionRequestTests
             StartTime = futureTime,
             RoomNumber = "A1",
             TotalSeats = 100,
-            TicketPrice = 25.50
+            TicketPrice = 25.50m
         };
 
         // Act & Assert
@@ -25,7 +25,7 @@ public class CreateSessionRequestTests
         Assert.Equal(futureTime, request.StartTime);
         Assert.Equal("A1", request.RoomNumber);
         Assert.Equal(100, request.TotalSeats);
-        Assert.Equal(25.50, request.TicketPrice);
+        Assert.Equal(25.50m, request.TicketPrice);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class CreateSessionRequestTests
             StartTime = DateTime.UtcNow.AddHours(1),
             RoomNumber = "A1",
             TotalSeats = 100,
-            TicketPrice = 25.50
+            TicketPrice = 25.50m
         };
 
         // Act & Assert
@@ -56,7 +56,7 @@ public class CreateSessionRequestTests
             StartTime = pastTime,
             RoomNumber = "A1",
             TotalSeats = 100,
-            TicketPrice = 25.50
+            TicketPrice = 25.50m
         };
 
         // Act & Assert
@@ -73,7 +73,7 @@ public class CreateSessionRequestTests
             StartTime = DateTime.UtcNow.AddHours(1),
             RoomNumber = "A",
             TotalSeats = 100,
-            TicketPrice = 25.50
+            TicketPrice = 25.50m
         };
 
         // Act & Assert
@@ -90,7 +90,7 @@ public class CreateSessionRequestTests
             StartTime = DateTime.UtcNow.AddHours(1),
             RoomNumber = "A1",
             TotalSeats = 0,
-            TicketPrice = 25.50
+            TicketPrice = 25.50m
         };
 
         // Act & Assert
@@ -107,7 +107,7 @@ public class CreateSessionRequestTests
             StartTime = DateTime.UtcNow.AddHours(1),
             RoomNumber = "A1",
             TotalSeats = 100,
-            TicketPrice = -5.00
+            TicketPrice = -5.00m
         };
 
         // Act & Assert
@@ -124,7 +124,7 @@ public class CreateSessionRequestTests
             StartTime = DateTime.UtcNow.AddHours(1),
             RoomNumber = "A1",
             TotalSeats = 100,
-            TicketPrice = 0.00
+            TicketPrice = 0.00m
         };
 
         // Act & Assert

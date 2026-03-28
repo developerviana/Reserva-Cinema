@@ -1,0 +1,27 @@
+# Testes e Cobertura
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Cobertura de Código
+coverage/
+*.coverage
+*.trx
+TestResults/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.sln.iml
+
+# Arquivos Temporários
+*.tmp
+*.bak
+~$*
+
+# Logs
+logs/
+*.log

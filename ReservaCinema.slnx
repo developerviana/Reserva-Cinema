@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReservaCinema.API/ReservaCinema.API.csproj" />
+    <Project Path="src/ReservaCinema.Application/ReservaCinema.Application.csproj" />
+    <Project Path="src/ReservaCinema.Domain/ReservaCinema.Domain.csproj" />
+    <Project Path="src/ReservaCinema.Infrastructure/ReservaCinema.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReservaCinema.API.Tests/ReservaCinema.API.Tests.csproj" />
+    <Project Path="tests/ReservaCinema.Application.Tests/ReservaCinema.Application.Tests.csproj" />
+    <Project Path="tests/ReservaCinema.Domain.Tests/ReservaCinema.Domain.Tests.csproj" />
+    <Project Path="tests/ReservaCinema.Infrastructure.Tests/ReservaCinema.Infrastructure.Tests.csproj" />
+    <Project Path="tests/ReservaCinema.Tests.Shared/ReservaCinema.Tests.Shared.csproj" />
+  </Folder>
+</Solution>
