@@ -6,6 +6,26 @@ namespace ReservaCinema.Domain.Entities;
 public class Session
 {
     /// <summary>
+    /// Construtor padrão para EF Core.
+    /// </summary>
+    public Session()
+    {
+    }
+
+    /// <summary>
+    /// Construtor para criar uma nova sessão.
+    /// </summary>
+    public Session(string movieTitle, string roomNumber, DateTime startTime, int totalSeats, decimal ticketPrice)
+    {
+        MovieTitle = movieTitle;
+        RoomNumber = roomNumber;
+        StartTime = startTime;
+        TotalSeats = totalSeats;
+        AvailableSeats = totalSeats;
+        TicketPrice = ticketPrice;
+    }
+
+    /// <summary>
     /// ID único da sessão.
     /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
