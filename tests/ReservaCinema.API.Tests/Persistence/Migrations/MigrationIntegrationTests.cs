@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using ReservaCinema.Domain.Entities;
 using ReservaCinema.Infrastructure.Persistence;
 
 namespace ReservaCinema.API.Tests.Persistence.Migrations;
