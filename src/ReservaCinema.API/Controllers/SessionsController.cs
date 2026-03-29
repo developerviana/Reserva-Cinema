@@ -54,4 +54,26 @@ public class SessionsController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Obtém uma sessão de cinema pelo ID.
+    /// </summary>
+    /// <param name="id">ID da sessão a ser recuperada.</param>
+    /// <returns>Retorna a sessão encontrada com status 200.</returns>
+    /// <response code="200">Sessão encontrada com sucesso.</response>
+    /// <response code="404">Sessão não encontrada.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(SessionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSessionById(Guid id)
+    {
+        var session = await _sessionService.GetSessionByIdAsync(id);
+
+        if (session is null)
+        {
+            return NotFound(new { error = "Sessão não encontrada." });
+        }
+
+        return Ok(session);
+    }
 }
