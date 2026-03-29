@@ -1,6 +1,5 @@
 using FluentAssertions;
 using ReservaCinema.Application.DTOs.Sessions;
-using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.API.Tests.Integration.Sessions;
 
@@ -15,7 +14,8 @@ public class GetSessionIntegrationTests
         // Arrange
         var sessionId = Guid.NewGuid();
         var futureTime = DateTime.UtcNow.AddHours(1);
-        
+        var createdAt = DateTime.UtcNow;
+
         var expectedResponse = new SessionResponse
         {
             Id = sessionId,
@@ -25,7 +25,7 @@ public class GetSessionIntegrationTests
             TotalSeats = 100,
             AvailableSeats = 100,
             TicketPrice = 25.50m,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = createdAt,
             IsActive = true,
             DurationMinutes = 136,
             RatingClassification = "14"

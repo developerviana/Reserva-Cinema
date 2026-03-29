@@ -44,4 +44,24 @@ public class SessionResponse
     /// Data de criação da sessão.
     /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Data de última atualização da sessão.
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Indica se a sessão está ativa.
+    /// </summary>
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Duração do filme em minutos.
+    /// </summary>
+    public int? DurationMinutes { get; set; }
+
+    /// <summary>
+    /// Classificação indicativa (L, 10, 12, 14, 16, 18).
+    /// </summary>
+    public string? RatingClassification { get; set; }
 }
