@@ -1,6 +1,6 @@
 using ReservaCinema.Tests.Shared.Builders;
 
-namespace ReservaCinema.API.Tests.Integration.Sessions;
+namespace ReservaCinema.API.Tests.Controllers.Sessions;
 
 /// <summary>
 /// Testes de integração para CreateSession endpoint.
