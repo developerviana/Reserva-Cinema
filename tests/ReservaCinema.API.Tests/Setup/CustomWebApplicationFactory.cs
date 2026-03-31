@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ReservaCinema.Infrastructure.Persistence;
 
-namespace ReservaCinema.API.Tests.Integration.Setup;
+namespace ReservaCinema.API.Tests.Setup;
 
 /// <summary>
 /// Factory customizada para criar instâncias da aplicação para testes de integração.

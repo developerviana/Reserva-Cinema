@@ -21,6 +21,15 @@ public class ReservationService : IReservationService
         if (request.SeatNumbers == null || request.SeatNumbers.Length == 0)
             throw new ArgumentException("Deve haver pelo menos um assento a ser reservado.");
 
+        // Validação de limite de assentos
+        if (request.SeatNumbers.Length > 10)
+            throw new ArgumentException("Máximo de 10 assentos por reserva.");
+
+        // Validação de assentos duplicados
+        var uniqueSeats = request.SeatNumbers.Distinct();
+        if (uniqueSeats.Count() != request.SeatNumbers.Length)
+            throw new ArgumentException("Não pode haver assentos duplicados na reserva.");
+
         // Simula criação de reserva (em produção, integraria com banco de dados)
         var reservationId = $"res-{Guid.NewGuid().ToString().Substring(0, 8)}";
         var expiresAt = DateTime.UtcNow.AddHours(1);

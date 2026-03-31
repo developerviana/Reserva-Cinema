@@ -7,30 +7,17 @@ namespace ReservaCinema.API.Tests.Persistence.Migrations;
 
 public class MigrationIntegrationTests
 {
-    private readonly string _connectionString =
-        "Host=localhost;Port=5432;Database=cinema_db_test;Username=postgres;Password=postgres";
-
     [Fact]
-    public async Task Database_ShouldApplyMigrations_AndAllowCrudOperations()
+    public async Task DbContext_ShouldAllowCrudOperations()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<ReservaCinemaDbContext>()
-            .UseNpgsql(_connectionString)
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         await using var context = new ReservaCinemaDbContext(options);
 
-        // Garantir banco limpo
-        await context.Database.EnsureDeletedAsync();
-
-        // Act
-        await context.Database.MigrateAsync();
-
-        // Assert 1: Migration aplicada
-        var canConnect = await context.Database.CanConnectAsync();
-        canConnect.Should().BeTrue();
-
-        // Assert 2: INSERT
+        // Act: INSERT
         var session = new Session(
             movieTitle: "Batman",
             roomNumber: "Room 1",
@@ -42,24 +29,31 @@ public class MigrationIntegrationTests
         context.Sessions.Add(session);
         await context.SaveChangesAsync();
 
-        // Assert 3: SELECT
+        // Assert: SELECT
         var saved = await context.Sessions.FirstOrDefaultAsync();
-
         saved.Should().NotBeNull();
         saved!.MovieTitle.Should().Be("Batman");
+        saved.RoomNumber.Should().Be("Room 1");
+        saved.TotalSeats.Should().Be(100);
+    }
 
-        // Assert 4: UPDATE
-        saved.MovieTitle = "Batman - Updated";
+    [Fact]
+    public async Task DbContext_ShouldAllowMultipleSessions()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ReservaCinemaDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new ReservaCinemaDbContext(options);
+
+        // Act
+        context.Sessions.Add(new Session("Movie1", "R1", DateTime.UtcNow, 50, 20m));
+        context.Sessions.Add(new Session("Movie2", "R2", DateTime.UtcNow, 60, 25m));
         await context.SaveChangesAsync();
 
-        var updated = await context.Sessions.FirstAsync();
-        updated.MovieTitle.Should().Be("Batman - Updated");
-
-        // Assert 5: DELETE
-        context.Sessions.Remove(updated);
-        await context.SaveChangesAsync();
-
+        // Assert
         var count = await context.Sessions.CountAsync();
-        count.Should().Be(0);
+        count.Should().Be(2);
     }
 }

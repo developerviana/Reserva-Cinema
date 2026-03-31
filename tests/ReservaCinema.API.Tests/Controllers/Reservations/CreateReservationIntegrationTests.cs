@@ -2,15 +2,15 @@ using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
 using ReservaCinema.API;
-using ReservaCinema.API.Tests.Integration.Setup;
+using ReservaCinema.API.Tests.Setup;
 
-namespace ReservaCinema.API.Tests.Integration.Reservations;
+namespace ReservaCinema.API.Tests.Controllers.Reservations;
 
 /// <summary>
 /// Testes de integração HTTP para POST /api/reservations endpoint.
 /// Testa requisições reais contra o endpoint usando WebApplicationFactory.
 /// </summary>
-public class CreateReservationUnitTests : IAsyncLifetime
+public class CreateReservationIntegrationTests : IAsyncLifetime
 {
     private CustomWebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;

@@ -60,7 +60,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/CinemaTicket.API/Dockerfile
+      dockerfile: src/ReservaCinema.API/Dockerfile
     container_name: cinema-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -72,30 +72,6 @@ services:
       - RabbitMQ__Password=guest
     ports:
       - "5000:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - cinema-network
-    restart: unless-stopped
-
-  # Workers - Background Workers
-  workers:
-    build:
-      context: .
-      dockerfile: src/CinemaTicket.Workers/Dockerfile
-    container_name: cinema-workers
-    environment:
-      - DOTNET_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=cinema_db;Username=postgres;Password=postgres
-      - Redis__ConnectionString=redis:6379
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest
     depends_on:
       postgres:
         condition: service_healthy
