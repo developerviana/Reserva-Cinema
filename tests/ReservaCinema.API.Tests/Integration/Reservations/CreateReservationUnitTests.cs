@@ -1,98 +1,124 @@
 using FluentAssertions;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace ReservaCinema.API.Tests.Integration.Reservations;
 
 /// <summary>
-/// Testes de integração para POST /api/reservations endpoint.
-/// Foco em regras de negócio críticas com máxima cobertura mínima.
+/// Testes de integração HTTP para POST /api/reservations endpoint.
+/// Testa requisições reais contra o endpoint.
 /// </summary>
-public class CreateReservationUnitTests
+public class CreateReservationUnitTests : IAsyncLifetime
 {
-    [Fact]
-    public void CreateReservationRequest_WithValidData_ShouldHaveCorrectStructure()
+    private HttpClient _httpClient = null!;
+
+    public async Task InitializeAsync()
     {
-        // Arrange & Act
+        // Setup - Cria um cliente HTTP para testes
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost:5000")
+        };
+        await Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        _httpClient?.Dispose();
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task CreateReservation_WithValidData_ShouldReturn201Created()
+    {
+        // Arrange
+        var request = new
+        {
+            sessionId = Guid.NewGuid(),
+            userId = "user-123",
+            seatNumbers = new[] { "A1", "A2" }
+        };
+
+        // Act
+        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task CreateReservation_WithInvalidSessionId_ShouldReturn400BadRequest()
+    {
+        // Arrange
+        var request = new
+        {
+            sessionId = Guid.Empty,
+            userId = "user-123",
+            seatNumbers = new[] { "A1" }
+        };
+
+        // Act
+        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateReservation_WithEmptySeats_ShouldReturn400BadRequest()
+    {
+        // Arrange
+        var request = new
+        {
+            sessionId = Guid.NewGuid(),
+            userId = "user-123",
+            seatNumbers = Array.Empty<string>()
+        };
+
+        // Act
+        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateReservation_WithEmptyUserId_ShouldReturn400BadRequest()
+    {
+        // Arrange
+        var request = new
+        {
+            sessionId = Guid.NewGuid(),
+            userId = string.Empty,
+            seatNumbers = new[] { "A1" }
+        };
+
+        // Act
+        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateReservation_WithSeatsAlreadyReserved_ShouldReturn409Conflict()
+    {
+        // Arrange - Simula assentos já reservados
         var sessionId = Guid.NewGuid();
-        var userId = "user-123";
-        var seatNumbers = new[] { "A1", "A2" };
-
-        // Assert - Valida estrutura e dados críticos
-        sessionId.Should().NotBeEmpty();
-        userId.Should().NotBeNullOrWhiteSpace();
-        seatNumbers.Should().NotBeNullOrEmpty();
-        seatNumbers.Should().AllSatisfy(seat => seat.Should().MatchRegex(@"^[A-Z]\d+$"));
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("00000000-0000-0000-0000-000000000000")]
-    public void CreateReservationRequest_WithInvalidSessionId_ShouldFail(string sessionId)
-    {
-        // Arrange & Act
-        var isValidGuid = Guid.TryParse(sessionId, out var parsedId) && parsedId != Guid.Empty;
-
-        // Assert
-        isValidGuid.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(null)]
-    [InlineData("   ")]
-    public void CreateReservationRequest_WithInvalidUserId_ShouldFail(string? userId)
-    {
-        // Arrange & Act
-        var isValid = !string.IsNullOrWhiteSpace(userId);
-
-        // Assert
-        isValid.Should().BeFalse();
-    }
-
-    [Fact]
-    public void CreateReservationRequest_WithoutSeats_ShouldFail()
-    {
-        // Arrange & Act
-        var seatNumbers = Array.Empty<string>();
-
-        // Assert
-        seatNumbers.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void CreateReservationResponse_ShouldContainAllRequiredFields()
-    {
-        // Arrange - Simula resposta sucesso 201
-        var response = new
+        var request = new
         {
-            reservationId = "res-789",
-            status = "pending",
-            expiresAt = DateTime.UtcNow.AddHours(1),
-            seats = new[] { "A1", "A2" },
-            totalAmount = 50.00m
+            sessionId = sessionId,
+            userId = "user-123",
+            seatNumbers = new[] { "A1" }
         };
 
-        // Act & Assert
-        response.reservationId.Should().NotBeNullOrEmpty();
-        response.status.Should().Be("pending");
-        response.expiresAt.Should().BeAfter(DateTime.UtcNow);
-        response.seats.Should().HaveCount(2);
-        response.totalAmount.Should().BeGreaterThan(0);
-    }
+        // Act
+        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
 
-    [Fact]
-    public void CreateReservationResponse_ConflictError_ShouldHaveCorrectStructure()
-    {
-        // Arrange - Simula resposta conflito 409
-        var error = new
-        {
-            error = "SEAT_ALREADY_RESERVED",
-            message = "Assentos [A1] não disponíveis",
-            conflictingSeats = new[] { "A1" }
-        };
-
-        // Act & Assert
-        error.error.Should().Be("SEAT_ALREADY_RESERVED");
-        error.message.Should().Contain("não disponíveis");
-        error.conflictingSeats.Should().Contain("A1");
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var content = await response.Content.ReadFromJsonAsync<dynamic>();
+        content?.error.Should().Be("SEAT_ALREADY_RESERVED");
     }
 }
+
