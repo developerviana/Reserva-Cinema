@@ -10,7 +10,7 @@ namespace ReservaCinema.API.Tests.Integration.Reservations;
 /// Testes de integração HTTP para POST /api/reservations endpoint.
 /// Testa requisições reais contra o endpoint usando WebApplicationFactory.
 /// </summary>
-public class CreateReservationUnitTests : IAsyncLifetime
+public class CreateReservationIntegrationTests : IAsyncLifetime
 {
     private CustomWebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
