@@ -18,6 +18,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Register Application Services
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<CreateSessionRequestValidator>();
 
 // Configure Swagger/OpenAPI
@@ -47,11 +48,14 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Apply migrations automatically
-using (var scope = app.Services.CreateScope())
+// Apply migrations automatically (skip em testes)
+if (!app.Environment.IsEnvironment("Test"))
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ReservaCinemaDbContext>();
-    dbContext.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ReservaCinemaDbContext>();
+        dbContext.Database.Migrate();
+    }
 }
 
 // Configure the HTTP request pipeline

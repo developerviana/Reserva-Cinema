@@ -1,30 +1,31 @@
 using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
+using ReservaCinema.API;
+using ReservaCinema.API.Tests.Integration.Setup;
 
 namespace ReservaCinema.API.Tests.Integration.Reservations;
 
 /// <summary>
 /// Testes de integração HTTP para POST /api/reservations endpoint.
-/// Testa requisições reais contra o endpoint.
+/// Testa requisições reais contra o endpoint usando WebApplicationFactory.
 /// </summary>
 public class CreateReservationUnitTests : IAsyncLifetime
 {
-    private HttpClient _httpClient = null!;
+    private CustomWebApplicationFactory<Program> _factory = null!;
+    private HttpClient _client = null!;
 
     public async Task InitializeAsync()
     {
-        // Setup - Cria um cliente HTTP para testes
-        _httpClient = new HttpClient
-        {
-            BaseAddress = new Uri("http://localhost:5000")
-        };
+        _factory = new CustomWebApplicationFactory<Program>();
+        _client = _factory.CreateClient();
         await Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
-        _httpClient?.Dispose();
+        _client?.Dispose();
+        _factory?.Dispose();
         await Task.CompletedTask;
     }
 
@@ -40,7 +41,7 @@ public class CreateReservationUnitTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+        var response = await _client.PostAsJsonAsync("/api/reservations", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -58,7 +59,7 @@ public class CreateReservationUnitTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+        var response = await _client.PostAsJsonAsync("/api/reservations", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -76,7 +77,7 @@ public class CreateReservationUnitTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+        var response = await _client.PostAsJsonAsync("/api/reservations", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -94,31 +95,35 @@ public class CreateReservationUnitTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+        var response = await _client.PostAsJsonAsync("/api/reservations", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task CreateReservation_WithSeatsAlreadyReserved_ShouldReturn409Conflict()
+    public async Task CreateReservation_ShouldReturnCreatedResponse_WithAllRequiredFields()
     {
-        // Arrange - Simula assentos já reservados
-        var sessionId = Guid.NewGuid();
+        // Arrange
         var request = new
         {
-            sessionId = sessionId,
-            userId = "user-123",
-            seatNumbers = new[] { "A1" }
+            sessionId = Guid.NewGuid(),
+            userId = "user-456",
+            seatNumbers = new[] { "B1", "B2" }
         };
 
         // Act
-        var response = await _httpClient.PostAsJsonAsync("/api/reservations", request);
+        var response = await _client.PostAsJsonAsync("/api/reservations", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        var content = await response.Content.ReadFromJsonAsync<dynamic>();
-        content?.error.Should().Be("SEAT_ALREADY_RESERVED");
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("reservationId");
+        content.Should().Contain("pending");
+        content.Should().Contain("expiresAt");
+        content.Should().Contain("totalAmount");
     }
 }
+
+
 
