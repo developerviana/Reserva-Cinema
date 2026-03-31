@@ -60,7 +60,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/CinemaTicket.API/Dockerfile
+      dockerfile: src/ReservaCinema.API/Dockerfile
     container_name: cinema-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -87,7 +87,7 @@ services:
   workers:
     build:
       context: .
-      dockerfile: src/CinemaTicket.Workers/Dockerfile
+      dockerfile: src/ReservaCinema.Workers/Dockerfile
     container_name: cinema-workers
     environment:
       - DOTNET_ENVIRONMENT=Development
