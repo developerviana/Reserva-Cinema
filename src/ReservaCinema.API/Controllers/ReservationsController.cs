@@ -51,7 +51,7 @@ public class ReservationsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { error = ex.Message }); 
         }
     }
 }

@@ -18,8 +18,8 @@ public class Session
     public Session(string movieTitle, string roomNumber, DateTime startTime, int totalSeats, decimal ticketPrice)
     {
         MovieTitle = movieTitle;
-        RoomNumber = roomNumber;
         StartTime = startTime;
+        RoomNumber = roomNumber;
         TotalSeats = totalSeats;
         AvailableSeats = totalSeats;
         TicketPrice = ticketPrice;
