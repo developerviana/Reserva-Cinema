@@ -200,6 +200,7 @@ public class CreateSessionServiceTests
 internal class SessionServiceMock : ISessionService
 {
     private static readonly Dictionary<Guid, ReservaCinema.Domain.Entities.Session> SessionStore = new();
+    private static readonly Dictionary<(Guid, string), (SeatStatus status, DateTime? expiresAt)> SeatStore = new();
 
     public async Task<SessionResponse> CreateSessionAsync(CreateSessionRequest request)
     {
@@ -235,6 +236,13 @@ internal class SessionServiceMock : ISessionService
 
         SessionStore[sessionId] = session;
 
+        // Inicializa todos os assentos como disponíveis
+        for (int i = 1; i <= request.TotalSeats; i++)
+        {
+            var seatNumber = $"{request.RoomNumber}{i}";
+            SeatStore[(sessionId, seatNumber)] = (SeatStatus.Available, null);
+        }
+
         var response = new SessionResponse
         {
             Id = sessionId,
@@ -257,6 +265,33 @@ internal class SessionServiceMock : ISessionService
             MovieTitle = session.MovieTitle,
             AvailableSeats = session.AvailableSeats,
             CreatedAt = session.CreatedAt
+        });
+    }
+
+    public async Task<SessionSeatsResponse?> GetSessionSeatsAsync(Guid sessionId)
+    {
+        if (!SessionStore.TryGetValue(sessionId, out var session))
+            return null;
+
+        var seats = SeatStore
+            .Where(kvp => kvp.Key.Item1 == sessionId)
+            .Select(kvp => new SeatDto
+            {
+                Number = kvp.Key.Item2,
+                Status = kvp.Value.status,
+                ExpiresAt = kvp.Value.expiresAt
+            })
+            .OrderBy(s => s.Number)
+            .ToArray();
+
+        var availableCount = seats.Count(s => s.Status == SeatStatus.Available);
+
+        return await Task.FromResult(new SessionSeatsResponse
+        {
+            SessionId = sessionId,
+            TotalSeats = session.TotalSeats,
+            AvailableSeats = availableCount,
+            Seats = seats
         });
     }
 
@@ -297,5 +332,15 @@ internal class SessionServiceMock : ISessionService
     public async Task<bool> DeleteSessionAsync(Guid id)
     {
         return await Task.FromResult(SessionStore.Remove(id));
+    }
+
+    // Helper para testes
+    public void ReserveSeat(Guid sessionId, string seatNumber)
+    {
+        var key = (sessionId, seatNumber);
+        if (SeatStore.ContainsKey(key))
+        {
+            SeatStore[key] = (SeatStatus.Reserved, DateTime.UtcNow.AddHours(1));
+        }
     }
 }

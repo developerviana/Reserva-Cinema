@@ -28,6 +28,13 @@ public interface ISessionService
     Task<IEnumerable<SessionResponse>> GetAllSessionsAsync();
 
     /// <summary>
+    /// Obtém a disponibilidade em tempo real dos assentos de uma sessão.
+    /// </summary>
+    /// <param name="sessionId">ID da sessão.</param>
+    /// <returns>Retorna informações de assentos e disponibilidade ou null se sessão não encontrada.</returns>
+    Task<SessionSeatsResponse?> GetSessionSeatsAsync(Guid sessionId);
+
+    /// <summary>
     /// Atualiza uma sessão existente.
     /// </summary>
     /// <param name="id">ID da sessão.</param>

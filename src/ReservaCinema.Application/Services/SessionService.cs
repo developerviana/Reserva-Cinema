@@ -95,6 +95,48 @@ public class SessionService : ISessionService
     }
 
     /// <summary>
+    /// Obtém a disponibilidade em tempo real dos assentos de uma sessão.
+    /// </summary>
+    public async Task<SessionSeatsResponse?> GetSessionSeatsAsync(Guid sessionId)
+    {
+        var session = await _repository.GetByIdAsync(sessionId);
+        if (session == null)
+            return null;
+
+        // Simula a geração de assentos padrão (no caso real, viria do banco de dados)
+        var seats = GenerateSeats(session.RoomNumber, session.TotalSeats);
+
+        var availableCount = seats.Count(s => s.Status == SeatStatus.Available);
+
+        var response = new SessionSeatsResponse
+        {
+            SessionId = sessionId,
+            TotalSeats = session.TotalSeats,
+            AvailableSeats = availableCount,
+            Seats = seats
+        };
+
+        return await Task.FromResult(response);
+    }
+
+    /// <summary>
+    /// Gera a lista padrão de assentos para uma sessão.
+    /// </summary>
+    private static SeatDto[] GenerateSeats(string roomNumber, int totalSeats)
+    {
+        var seats = new SeatDto[totalSeats];
+        for (int i = 1; i <= totalSeats; i++)
+        {
+            seats[i - 1] = new SeatDto
+            {
+                Number = $"{roomNumber}{i}",
+                Status = SeatStatus.Available
+            };
+        }
+        return seats;
+    }
+
+    /// <summary>
     /// Deleta uma sessão.
     /// </summary>
     public async Task<bool> DeleteSessionAsync(Guid id)
