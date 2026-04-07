@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ReservaCinema.Application.DTOs.Reservations;
 using ReservaCinema.Application.Services.Interfaces;
+using ReservaCinema.Domain.Exceptions;
 
 namespace ReservaCinema.API.Controllers;
 
@@ -52,6 +53,62 @@ public class ReservationsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message }); 
+        }
+    }
+
+    /// <summary>
+    /// Confirma o pagamento de uma reserva existente.
+    /// </summary>
+    /// <param name="id">ID da reserva a confirmar.</param>
+    /// <param name="request">Dados do pagamento (método e ID de transação).</param>
+    /// <returns>Retorna confirmação com venda ID e data de pagamento.</returns>
+    /// <remarks>
+    /// Exemplo de requisição:
+    ///
+    ///     POST /api/reservations/res-abc12345/confirm
+    ///     {
+    ///        "paymentMethod": "credit_card",
+    ///        "transactionId": "tx-456"
+    ///     }
+    ///
+    /// Respostas:
+    /// - 200 OK: Pagamento confirmado com sucesso
+    /// - 400 Bad Request: Dados inválidos
+    /// - 404 Not Found: Reserva não existe
+    /// - 410 Gone: Reserva expirou
+    ///
+    /// </remarks>
+    /// <response code="200">Pagamento confirmado com sucesso.</response>
+    /// <response code="400">Validação falhou - dados inválidos.</response>
+    /// <response code="404">Reserva não encontrada.</response>
+    /// <response code="410">Reserva expirou.</response>
+    [HttpPost("{id}/confirm")]
+    [ProducesResponseType(typeof(ConfirmPaymentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status410Gone)]
+    public async Task<IActionResult> ConfirmPayment(string id, [FromBody] ConfirmPaymentRequest request)
+    {
+        try
+        {
+            var result = await _reservationService.ConfirmPaymentAsync(id, request);
+
+            if (result == null)
+                return NotFound(new { error = "RESERVATION_NOT_FOUND", message = "Reserva não encontrada." });
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = "INVALID_REQUEST", message = ex.Message });
+        }
+        catch (ReservationExpiredException ex)
+        {
+            return StatusCode(StatusCodes.Status410Gone, new
+            {
+                error = "RESERVATION_EXPIRED",
+                message = $"Reserva expirou em {ex.ExpiresAt:O}"
+            });
         }
     }
 }
