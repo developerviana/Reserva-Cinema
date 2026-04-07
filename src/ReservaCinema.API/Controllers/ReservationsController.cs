@@ -50,6 +50,16 @@ public class ReservationsController : ControllerBase
             var reservation = await _reservationService.CreateReservationAsync(request);
             return CreatedAtAction(nameof(CreateReservation), new { id = reservation.ReservationId }, reservation);
         }
+        catch (SeatAlreadyReservedException ex)
+        {
+            var conflictResponse = new ReservationConflictResponse
+            {
+                Error = "SEAT_ALREADY_RESERVED",
+                Message = ex.Message,
+                ConflictingSeats = ex.ConflictingSeats.ToArray()
+            };
+            return Conflict(conflictResponse);
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message }); 
