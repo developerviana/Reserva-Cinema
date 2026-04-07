@@ -1,4 +1,5 @@
 using ReservaCinema.Application.DTOs.Reservations;
+using ReservaCinema.Application.DTOs.Users;
 using ReservaCinema.Application.Services.Interfaces;
 using ReservaCinema.Domain.Entities;
 using ReservaCinema.Domain.Exceptions;
@@ -97,5 +98,47 @@ public class ReservationService : IReservationService
         };
 
         return await Task.FromResult(response);
+    }
+
+    public async Task<PurchaseHistoryResponse> GetPurchaseHistoryAsync(string userId)
+    {
+        // Validação de entrada
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("UserId não pode estar vazio.");
+
+        // Filtra reservas confirmadas do usuário
+        var userPurchases = ReservationStore.Values
+            .Where(r => r.UserId == userId && r.Status == "confirmed")
+            .OrderByDescending(r => r.PaidAt)
+            .Select(r => new PurchaseDto
+            {
+                SaleId = r.SaleId!,
+                SessionId = r.SessionId,
+                MovieTitle = GetMovieTitle(r.SessionId),
+                Seats = r.GetSeats(),
+                TotalAmount = r.TotalAmount,
+                PurchasedAt = r.PaidAt!.Value
+            })
+            .ToArray();
+
+        var response = new PurchaseHistoryResponse
+        {
+            UserId = userId,
+            Purchases = userPurchases
+        };
+
+        return await Task.FromResult(response);
+    }
+
+    /// <summary>
+    /// Simula a busca do título do filme pela sessionId.
+    /// Em produção, seria feita uma query no banco de dados.
+    /// </summary>
+    private static string GetMovieTitle(Guid sessionId)
+    {
+        // Simulação: retorna um título baseado no guid
+        return sessionId.ToString().StartsWith("550e8400")
+            ? "Oppenheimer"
+            : $"Movie-{sessionId.ToString()[..8]}";
     }
 }

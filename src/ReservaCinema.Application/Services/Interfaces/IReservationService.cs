@@ -1,4 +1,5 @@
 using ReservaCinema.Application.DTOs.Reservations;
+using ReservaCinema.Application.DTOs.Users;
 
 namespace ReservaCinema.Application.Services.Interfaces;
 
@@ -24,4 +25,12 @@ public interface IReservationService
     /// <exception cref="ArgumentException">Lançada se dados inválidos.</exception>
     /// <exception cref="ReservaCinema.Domain.Exceptions.ReservationExpiredException">Lançada se reserva expirou.</exception>
     Task<ConfirmPaymentResponse?> ConfirmPaymentAsync(string reservationId, ConfirmPaymentRequest request);
+
+    /// <summary>
+    /// Obtém o histórico de compras de um usuário.
+    /// </summary>
+    /// <param name="userId">ID do usuário.</param>
+    /// <returns>Response com lista de compras do usuário.</returns>
+    /// <exception cref="ArgumentException">Lançada se userId inválido.</exception>
+    Task<PurchaseHistoryResponse> GetPurchaseHistoryAsync(string userId);
 }
