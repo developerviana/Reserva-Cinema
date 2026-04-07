@@ -22,6 +22,22 @@ public class SessionService : ISessionService
     /// </summary>
     public async Task<SessionResponse> CreateSessionAsync(CreateSessionRequest request)
     {
+        // Validações de entrada
+        if (string.IsNullOrWhiteSpace(request.MovieTitle))
+            throw new ArgumentException("MovieTitle não pode estar vazio.");
+
+        if (request.StartTime <= DateTime.UtcNow)
+            throw new ArgumentException("StartTime deve ser no futuro.");
+
+        if (string.IsNullOrWhiteSpace(request.RoomNumber))
+            throw new ArgumentException("RoomNumber não pode estar vazio.");
+
+        if (request.TotalSeats <= 0)
+            throw new ArgumentException("TotalSeats deve ser maior que 0.");
+
+        if (request.TicketPrice < 0)
+            throw new ArgumentException("TicketPrice não pode ser negativo.");
+
         var session = new Session
         {
             Id = Guid.NewGuid(),
