@@ -35,6 +35,11 @@ public class ReservationService : IReservationService
         if (uniqueSeats.Count() != request.SeatNumbers.Length)
             throw new ArgumentException("Não pode haver assentos duplicados na reserva.");
 
+        // Validação de conflito de assentos
+        var conflictingSeats = GetConflictingSeats(request.SessionId, request.SeatNumbers);
+        if (conflictingSeats.Any())
+            throw new SeatAlreadyReservedException(conflictingSeats);
+
         // Simula criação de reserva (em produção, integraria com banco de dados)
         var reservationId = $"res-{Guid.NewGuid().ToString().Substring(0, 8)}";
         var expiresAt = DateTime.UtcNow.AddHours(1);
@@ -140,5 +145,18 @@ public class ReservationService : IReservationService
         return sessionId.ToString().StartsWith("550e8400")
             ? "Oppenheimer"
             : $"Movie-{sessionId.ToString()[..8]}";
+    }
+
+    /// <summary>
+    /// Verifica quais assentos já estão reservados para a sessão.
+    /// </summary>
+    private static IEnumerable<string> GetConflictingSeats(Guid sessionId, IEnumerable<string> requestedSeats)
+    {
+        var reservedSeatsForSession = ReservationStore.Values
+            .Where(r => r.SessionId == sessionId && r.Status == "pending")
+            .SelectMany(r => r.GetSeats())
+            .ToHashSet();
+
+        return requestedSeats.Where(seat => reservedSeatsForSession.Contains(seat)).ToList();
     }
 }
