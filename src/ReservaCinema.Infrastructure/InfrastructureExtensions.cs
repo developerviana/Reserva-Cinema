@@ -2,8 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ReservaCinema.Application.Persistence.Repositories;
+using ReservaCinema.Application.Services;
+using ReservaCinema.Infrastructure.Distributed;
 using ReservaCinema.Infrastructure.Persistence;
 using ReservaCinema.Infrastructure.Persistence.Repositories;
+using StackExchange.Redis;
 
 namespace ReservaCinema.Infrastructure;
 
@@ -28,6 +31,17 @@ public static class InfrastructureExtensions
 
         // Register Repositories
         services.AddScoped<ISessionRepository, SessionRepository>();
+
+        // Configure Redis for Distributed Lock
+        var redisConnectionString = configuration.GetConnectionString("Redis")
+            ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
+
+        var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+            ConnectionMultiplexer.Connect(redisOptions));
+
+        services.AddScoped<IDistributedLockService, RedisLockService>();
 
         return services;
     }

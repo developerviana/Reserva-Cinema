@@ -27,8 +27,4 @@
     <ProjectReference Include="..\ReservaCinema.Tests.Shared\ReservaCinema.Tests.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Distributed\" />
-  </ItemGroup>
-
 </Project>

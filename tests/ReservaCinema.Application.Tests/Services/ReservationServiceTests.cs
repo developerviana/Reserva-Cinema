@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Moq;
 using ReservaCinema.Application.DTOs.Reservations;
 using ReservaCinema.Application.Services;
 
@@ -7,10 +8,26 @@ namespace ReservaCinema.Application.Tests.Services;
 /// <summary>
 /// Testes unitários para ReservationService.
 /// Testam regras de negócio em isolamento (sem banco de dados).
+/// Os testes antigos foram preservados com mock do IDistributedLockService.
 /// </summary>
 public class ReservationServiceTests
 {
-    private readonly ReservationService _service = new();
+    private readonly Mock<IDistributedLockService> _mockLockService;
+    private readonly ReservationService _service;
+
+    public ReservationServiceTests()
+    {
+        _mockLockService = new Mock<IDistributedLockService>();
+        // Por padrão, o mock retorna sucesso na aquisição de lock
+        _mockLockService
+            .Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(Guid.NewGuid().ToString());
+        _mockLockService
+            .Setup(x => x.ReleaseLockAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        _service = new ReservationService(_mockLockService.Object);
+    }
 
     [Theory]
     [InlineData("")]
