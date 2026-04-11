@@ -1,5 +1,3 @@
-using ReservaCinema.Domain.Exceptions;
-
 namespace ReservaCinema.Domain.Entities;
 
 /// <summary>
@@ -43,16 +41,6 @@ public class Reservation
     public decimal TotalAmount { get; set; }
 
     /// <summary>
-    /// ID da venda (gerado ao confirmar pagamento).
-    /// </summary>
-    public string? SaleId { get; set; }
-
-    /// <summary>
-    /// Data e hora do pagamento confirmado.
-    /// </summary>
-    public DateTime? PaidAt { get; set; }
-
-    /// <summary>
     /// Data de criação da reserva.
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -79,28 +67,5 @@ public class Reservation
     public void SetSeats(string[] seats)
     {
         SeatsJson = seats.Length > 0 ? string.Join(",", seats) : string.Empty;
-    }
-
-    /// <summary>
-    /// Confirma o pagamento da reserva.
-    /// Regras: reserva não pode estar expirada e não pode estar já confirmada.
-    /// </summary>
-    public void ConfirmPayment(string transactionId)
-    {
-        if (DateTime.UtcNow > ExpiresAt)
-            throw new ReservationExpiredException(ExpiresAt);
-
-        if (Status == "confirmed")
-            throw new InvalidOperationException("Reserva já foi confirmada.");
-
-        Status = "confirmed";
-        SaleId = GenerateSaleId();
-        PaidAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    private static string GenerateSaleId()
-    {
-        return $"sale-{Guid.NewGuid().ToString()[..8]}";
     }
 }
