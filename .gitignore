@@ -99,6 +99,9 @@ docker-compose.override.yml
 # macOS
 .DS_Store
 
+# Development Rules (Local Documentation)
+DEVELOPMENT_RULES.md
+
 # Windows
 Thumbs.db
 ehthumbs.db
