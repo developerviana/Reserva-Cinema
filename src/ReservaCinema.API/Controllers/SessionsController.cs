@@ -76,42 +76,4 @@ public class SessionsController : ControllerBase
 
         return Ok(session);
     }
-
-    /// <summary>
-    /// Obtém a disponibilidade em tempo real de assentos de uma sessão.
-    /// </summary>
-    /// <param name="id">ID da sessão.</param>
-    /// <returns>Retorna informações de assentos disponíveis, reservados e vendidos.</returns>
-    /// <remarks>
-    /// Exemplo de resposta:
-    ///
-    ///     GET /api/sessions/550e8400-e29b-41d4-a716-446655440000/seats
-    ///     {
-    ///        "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-    ///        "totalSeats": 16,
-    ///        "availableSeats": 8,
-    ///        "seats": [
-    ///          { "number": "A1", "status": "available" },
-    ///          { "number": "A2", "status": "reserved", "expiresAt": "2024-02-15T19:00:30Z" },
-    ///          { "number": "A3", "status": "sold" }
-    ///        ]
-    ///     }
-    ///
-    /// </remarks>
-    /// <response code="200">Assentos encontrados com sucesso.</response>
-    /// <response code="404">Sessão não encontrada.</response>
-    [HttpGet("{id:guid}/seats")]
-    [ProducesResponseType(typeof(SessionSeatsResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSessionSeats(Guid id)
-    {
-        var seatsInfo = await _sessionService.GetSessionSeatsAsync(id);
-
-        if (seatsInfo is null)
-        {
-            return NotFound(new { error = "Sessão não encontrada." });
-        }
-
-        return Ok(seatsInfo);
-    }
 }
