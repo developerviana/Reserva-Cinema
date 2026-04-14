@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ReservaCinema.Application.Services;
 using ReservaCinema.Infrastructure.Distributed.Configuration;
 using StackExchange.Redis;
@@ -12,6 +13,7 @@ public class RedisLockService : IDistributedLockService
 {
     private readonly IRedisConnectionProvider _connectionProvider;
     private readonly DistributedLockOptions _options;
+    private readonly ILogger<RedisLockService> _logger;
 
     /// <summary>
     /// Lua script para release seguro do lock.
@@ -26,10 +28,14 @@ public class RedisLockService : IDistributedLockService
         end
     ";
 
-    public RedisLockService(IRedisConnectionProvider connectionProvider, DistributedLockOptions options)
+    public RedisLockService(
+        IRedisConnectionProvider connectionProvider,
+        DistributedLockOptions options,
+        ILogger<RedisLockService> logger = null!)
     {
         _connectionProvider = connectionProvider ?? throw new ArgumentNullException(nameof(connectionProvider));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _logger = logger;
     }
 
     public async Task<string?> AcquireLockAsync(string lockKey, TimeSpan expiration)
@@ -49,7 +55,14 @@ public class RedisLockService : IDistributedLockService
             When.NotExists
         );
 
-        return acquired ? token : null;
+        if (acquired)
+        {
+            _logger?.LogInformation("Acquired lock for key '{LockKey}' with token '{Token}'", lockKey, token);
+            return token;
+        }
+
+        _logger?.LogWarning("Failed to acquire lock for key '{LockKey}'. Lock already exists or is not available", lockKey);
+        return null;
     }
 
     /// <summary>
@@ -73,7 +86,18 @@ public class RedisLockService : IDistributedLockService
             new RedisValue[] { lockToken }
         );
 
-        return result.IsNull == false && (long)result == 1;
+        var released = result.IsNull == false && (long)result == 1;
+
+        if (released)
+        {
+            _logger?.LogInformation("Released lock for key '{LockKey}'", lockKey);
+        }
+        else
+        {
+            _logger?.LogWarning("Failed to release lock for key '{LockKey}'. Lock does not exist or token is invalid", lockKey);
+        }
+
+        return released;
     }
 
     /// <summary>
