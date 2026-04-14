@@ -1,20 +1,43 @@
 using FluentAssertions;
+using Moq;
 using ReservaCinema.Infrastructure.Distributed;
+using ReservaCinema.Infrastructure.Distributed.Configuration;
 using ReservaCinema.Tests.Shared.Builders;
+using StackExchange.Redis;
 
 namespace ReservaCinema.Infrastructure.Tests.Distributed;
 
 /// <summary>
-/// Testes unitários para RedisLockService - Parte 1.
+/// Testes unitários para RedisLockService.
 /// Validam AcquireLockAsync e IsLockOwnedAsync com mocks.
-/// ReleaseLockAsync será testado em integração com Redis real.
+/// ReleaseLockAsync será testado em integração com Redis real (Lua script).
 /// 
-/// Razão: RedisResult não pode ser instanciado em testes unitários,
-/// então usamos integração para validar o script Lua.
-/// Referência TDD: Red → Green → Refactor
+/// TDD: Red → Green → Refactor
 /// </summary>
 public class RedisLockServiceTests
 {
+    private DistributedLockOptions CreateDefaultOptions()
+    {
+        return new DistributedLockOptions
+        {
+            LockExpirationSeconds = 5,
+            MaxRetryAttempts = 3,
+            RetryDelayMilliseconds = 100
+        };
+    }
+
+    private Mock<IRedisConnectionProvider> CreateMockProvider(Mock<IConnectionMultiplexer> mockConnection)
+    {
+        var mockProvider = new Mock<IRedisConnectionProvider>();
+        mockProvider
+            .Setup(x => x.GetDatabase())
+            .Returns(mockConnection.Object.GetDatabase());
+        mockProvider
+            .Setup(x => x.ConnectionMultiplexer)
+            .Returns(mockConnection.Object);
+        return mockProvider;
+    }
+
     #region AcquireLockAsync Tests
 
     [Fact]
@@ -26,7 +49,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateSuccessScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act
         var token = await service.AcquireLockAsync(lockKey, expiration);
@@ -45,7 +70,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateConflictScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act
         var token = await service.AcquireLockAsync(lockKey, expiration);
@@ -65,7 +92,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateSuccessScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act & Assert
         await FluentActions.Invoking(() => service.AcquireLockAsync(invalidKey, expiration))
@@ -86,7 +115,9 @@ public class RedisLockServiceTests
         var mockConnection = new RedisLockServiceMockBuilder()
             .WithStoredToken(lockToken)
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act
         var isOwned = await service.IsLockOwnedAsync(lockKey, lockToken);
@@ -105,7 +136,9 @@ public class RedisLockServiceTests
         var mockConnection = new RedisLockServiceMockBuilder()
             .WithStoredToken(validToken)
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act
         var isOwned = await service.IsLockOwnedAsync(lockKey, invalidToken);
@@ -123,7 +156,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateNoLockScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act
         var isOwned = await service.IsLockOwnedAsync(lockKey, lockToken);
@@ -143,7 +178,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateSuccessScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act & Assert
         await FluentActions.Invoking(() => service.IsLockOwnedAsync(invalidKey, lockToken))
@@ -162,7 +199,9 @@ public class RedisLockServiceTests
         var mockConnection = RedisLockServiceMockBuilder
             .CreateSuccessScenario()
             .Build();
-        var service = new RedisLockService(mockConnection.Object);
+        var mockProvider = CreateMockProvider(mockConnection);
+        var options = CreateDefaultOptions();
+        var service = new RedisLockService(mockProvider.Object, options);
 
         // Act & Assert
         await FluentActions.Invoking(() => service.IsLockOwnedAsync(lockKey, invalidToken))
@@ -175,12 +214,32 @@ public class RedisLockServiceTests
     #region Constructor Tests
 
     [Fact]
-    public void Constructor_WithNullConnectionMultiplexer_ShouldThrowArgumentNullException()
+    public void Constructor_WithNullConnectionProvider_ShouldThrowArgumentNullException()
     {
-        // Arrange, Act & Assert
-        FluentActions.Invoking(() => new RedisLockService(null!))
+        // Arrange
+        var options = CreateDefaultOptions();
+
+        // Act & Assert
+        FluentActions.Invoking(() => new RedisLockService(null!, options))
             .Should()
-            .Throw<ArgumentNullException>();
+            .Throw<ArgumentNullException>()
+            .WithParameterName("connectionProvider");
+    }
+
+    [Fact]
+    public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var mockConnection = RedisLockServiceMockBuilder
+            .CreateSuccessScenario()
+            .Build();
+        var mockProvider = CreateMockProvider(mockConnection);
+
+        // Act & Assert
+        FluentActions.Invoking(() => new RedisLockService(mockProvider.Object, null!))
+            .Should()
+            .Throw<ArgumentNullException>()
+            .WithParameterName("options");
     }
 
     #endregion

@@ -1,4 +1,5 @@
 using ReservaCinema.Application.Services;
+using ReservaCinema.Infrastructure.Distributed.Configuration;
 using StackExchange.Redis;
 
 namespace ReservaCinema.Infrastructure.Distributed;
@@ -9,7 +10,8 @@ namespace ReservaCinema.Infrastructure.Distributed;
 /// </summary>
 public class RedisLockService : IDistributedLockService
 {
-    private readonly IConnectionMultiplexer _redis;
+    private readonly IRedisConnectionProvider _connectionProvider;
+    private readonly DistributedLockOptions _options;
 
     /// <summary>
     /// Lua script para release seguro do lock.
@@ -24,23 +26,18 @@ public class RedisLockService : IDistributedLockService
         end
     ";
 
-    public RedisLockService(IConnectionMultiplexer redis)
+    public RedisLockService(IRedisConnectionProvider connectionProvider, DistributedLockOptions options)
     {
-        _redis = redis ?? throw new ArgumentNullException(nameof(redis));
+        _connectionProvider = connectionProvider ?? throw new ArgumentNullException(nameof(connectionProvider));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    /// <summary>
-    /// Tenta adquirir um lock de forma atômica usando SET NX EX.
-    /// </summary>
-    /// <param name="lockKey">Chave do lock (ex: "seat:123")</param>
-    /// <param name="expiration">Tempo antes do lock expirar automaticamente (previne deadlock)</param>
-    /// <returns>Token (Guid) se sucesso, null se lock já existe</returns>
     public async Task<string?> AcquireLockAsync(string lockKey, TimeSpan expiration)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(lockKey);
 
         var token = Guid.NewGuid().ToString();
-        var db = _redis.GetDatabase();
+        var db = _connectionProvider.GetDatabase();
 
         // SET NX EX: operação atômica no Redis
         // NX = Set if Not eXists (garante que só uma thread consegue)
@@ -66,7 +63,7 @@ public class RedisLockService : IDistributedLockService
         ArgumentException.ThrowIfNullOrWhiteSpace(lockKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(lockToken);
 
-        var db = _redis.GetDatabase();
+        var db = _connectionProvider.GetDatabase();
 
         // Executa Lua script atomicamente
         // Script verifica se valor armazenado == token antes de deletar
@@ -90,7 +87,7 @@ public class RedisLockService : IDistributedLockService
         ArgumentException.ThrowIfNullOrWhiteSpace(lockKey);
         ArgumentException.ThrowIfNullOrWhiteSpace(lockToken);
 
-        var db = _redis.GetDatabase();
+        var db = _connectionProvider.GetDatabase();
 
         // Simples GET: verifica se valor armazenado é igual ao token
         var storedToken = await db.StringGetAsync(lockKey);
