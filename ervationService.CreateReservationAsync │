@@ -1,0 +1,5 @@
+[33mf2f95a8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdesenv[m[33m)[m feat: integrate RedisLockService into ReservationService with 3 integration tests
+[33mffccbdf[m chore: downgrade test packages to net8.0 compatible versions
+[33m7ad7c96[m feat: add distributed lock service interface and conflict exception
+[33m388286d[m[33m ([m[1;31morigin/desenv[m[33m)[m fix: skip teste com problemas de thread-safety em testes paralelos
+[33m9796ee4[m feat: adicionar tratamento de 409 Conflict para assentos já reservados

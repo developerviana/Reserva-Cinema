@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ReservaCinema.Application.Persistence.Repositories;
 using ReservaCinema.Application.Services;
 using ReservaCinema.Infrastructure.Distributed;
+using ReservaCinema.Infrastructure.Distributed.Configuration;
 using ReservaCinema.Infrastructure.Persistence;
 using ReservaCinema.Infrastructure.Persistence.Repositories;
 using StackExchange.Redis;
@@ -40,6 +41,12 @@ public static class InfrastructureExtensions
 
         services.AddSingleton<IConnectionMultiplexer>(sp =>
             ConnectionMultiplexer.Connect(redisOptions));
+
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+
+        // Configure distributed lock options (padrão ou customizado via configuration)
+        var lockOptions = new DistributedLockOptions();
+        services.AddSingleton(lockOptions);
 
         services.AddScoped<IDistributedLockService, RedisLockService>();
 
