@@ -1,91 +1,120 @@
+using System.Net;
+using System.Net.Http.Json;
+using ReservaCinema.API.Tests.Setup;
 using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.API.Tests.Controllers.Sessions;
 
-/// <summary>
-/// Testes de integração para CreateSession endpoint.
-/// </summary>
-public class CreateSessionIntegrationTests
+public class CreateSessionIntegrationTests : IAsyncLifetime
 {
-    [Fact]
-    public void CreateSessionRequest_WithValidData_ShouldBeValid()
-    {
-        // Arrange
-        var futureTime = DateTime.UtcNow.AddHours(1);
-        var request = new CreateSessionRequestBuilder()
-            .WithMovieTitle("The Matrix")
-            .WithStartTime(futureTime)
-            .WithRoomNumber("A1")
-            .WithTotalSeats(100)
-            .WithTicketPrice(25.50m)
-            .Build();
+    private CustomWebApplicationFactory<Program> _factory = null!;
+    private HttpClient _client = null!;
 
-        // Act & Assert
-        request.Should().NotBeNull();
-        request.MovieTitle.Should().Be("The Matrix");
-        request.RoomNumber.Should().Be("A1");
-        request.TotalSeats.Should().Be(100);
-        request.TicketPrice.Should().Be(25.50m);
+    public async Task InitializeAsync()
+    {
+        _factory = new CustomWebApplicationFactory<Program>();
+        _client = _factory.CreateClient();
+        await Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Fact]
-    public void CreateSessionRequest_WithEmptyMovieTitle_ShouldFail()
+    public async Task CreateSession_ComDadosValidos_DeveRetornar201()
     {
         // Arrange
-        var request = new CreateSessionRequestBuilder()
-            .WithMovieTitle(string.Empty)
-            .Build();
+        var request = new CreateSessionRequestBuilder().Build();
 
-        // Act & Assert
-        request.MovieTitle.Should().BeEmpty();
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
-    public void CreateSessionRequest_WithPastStartTime_ShouldFail()
+    public async Task CreateSession_ComTituloVazio_DeveRetornar400()
     {
         // Arrange
-        var pastTime = DateTime.UtcNow.AddHours(-1);
-        var request = new CreateSessionRequestBuilder()
-            .WithStartTime(pastTime)
-            .Build();
+        var request = new CreateSessionRequestBuilder().WithMovieTitle("").Build();
 
-        // Act & Assert
-        request.StartTime.Should().BeBefore(DateTime.UtcNow);
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public void CreateSessionRequest_WithInvalidRoomNumber_ShouldFail()
+    public async Task CreateSession_ComDataNoPassado_DeveRetornar400()
     {
         // Arrange
-        var request = new CreateSessionRequestBuilder()
-            .WithRoomNumber("A")
-            .Build();
+        var request = new CreateSessionRequestBuilder().WithStartTime(DateTime.UtcNow.AddHours(-1)).Build();
 
-        // Act & Assert
-        request.RoomNumber.Length.Should().BeLessThan(2);
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public void CreateSessionRequest_WithZeroSeats_ShouldFail()
+    public async Task CreateSession_ComSalaInvalida_DeveRetornar400()
     {
         // Arrange
-        var request = new CreateSessionRequestBuilder()
-            .WithTotalSeats(0)
-            .Build();
+        var request = new CreateSessionRequestBuilder().WithRoomNumber("A").Build();
 
-        // Act & Assert
-        request.TotalSeats.Should().BeLessOrEqualTo(0);
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public void CreateSessionRequest_WithNegativeTicketPrice_ShouldFail()
+    public async Task CreateSession_ComZeroAssentos_DeveRetornar400()
     {
         // Arrange
-        var request = new CreateSessionRequestBuilder()
-            .WithTicketPrice(-10m)
-            .Build();
+        var request = new CreateSessionRequestBuilder().WithTotalSeats(0).Build();
 
-        // Act & Assert
-        request.TicketPrice.Should().BeLessOrEqualTo(0);
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateSession_ComPrecoNegativo_DeveRetornar400()
+    {
+        // Arrange
+        var request = new CreateSessionRequestBuilder().WithTicketPrice(-1m).Build();
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateSession_DeveRetornarCorpoComCamposEsperados()
+    {
+        // Arrange
+        var request = new CreateSessionRequestBuilder().WithMovieTitle("Inception").Build();
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/sessions", request);
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        content.Should().Contain("id");
+        content.Should().Contain("movieTitle");
+        content.Should().Contain("Inception");
     }
 }
