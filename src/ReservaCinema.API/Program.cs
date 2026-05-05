@@ -1,27 +1,20 @@
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using ReservaCinema.Application.Services;
-using ReservaCinema.Application.Services.Interfaces;
-using ReservaCinema.Application.Validators.Sessions;
+using ReservaCinema.Application;
 using ReservaCinema.Infrastructure;
 using ReservaCinema.Infrastructure.Persistence;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 
-// Register Infrastructure Services
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddApplicationServices();
 
-// Register Application Services
-builder.Services.AddScoped<ISessionService, SessionService>();
-builder.Services.AddScoped<IReservationService, ReservationService>();
-builder.Services.AddScoped<CreateSessionRequestValidator>();
-
-// Configure Swagger/OpenAPI
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -41,24 +34,19 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    // Include XML comments in documentation
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
 var app = builder.Build();
 
-// Apply migrations automatically (skip em testes)
 if (!app.Environment.IsEnvironment("Test"))
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<ReservaCinemaDbContext>();
-        dbContext.Database.Migrate();
-    }
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ReservaCinemaDbContext>();
+    dbContext.Database.Migrate();
 }
 
-// Configure the HTTP request pipeline
 app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -71,12 +59,11 @@ app.UseSwaggerUI(options =>
 });
 
 if (!app.Environment.IsDevelopment())
-{
     app.UseHttpsRedirection();
-}
 
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
 public partial class Program { }

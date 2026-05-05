@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ReservaCinema.Application.DTOs.Reservations;
 using ReservaCinema.Application.Services.Interfaces;
+using ReservaCinema.Domain.Exceptions;
 
 namespace ReservaCinema.API.Controllers;
 
@@ -36,12 +37,12 @@ public class ReservationsController : ControllerBase
     ///
     /// </remarks>
     /// <response code="201">Reserva criada com sucesso.</response>
-    /// <response code="400">Validação falhou - dados inválidos.</response>
+    /// <response code="400">Dados inválidos.</response>
     /// <response code="409">Assentos já estão reservados.</response>
     [HttpPost]
     [ProducesResponseType(typeof(CreateReservationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ReservationConflictResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateReservation([FromBody] CreateReservationRequest request)
     {
         try
@@ -51,7 +52,11 @@ public class ReservationsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message }); 
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { error = ex.Message });
         }
     }
 }

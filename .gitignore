@@ -99,7 +99,8 @@ docker-compose.override.yml
 # macOS
 .DS_Store
 
-# Development Rules (Local Documentation)
+# Arquivos do agente Claude (documentação local, não commitar)
+CLAUDE.md
 DEVELOPMENT_RULES.md
 
 # Windows
