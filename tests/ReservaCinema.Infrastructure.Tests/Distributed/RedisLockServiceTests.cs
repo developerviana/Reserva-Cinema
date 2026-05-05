@@ -16,15 +16,8 @@ namespace ReservaCinema.Infrastructure.Tests.Distributed;
 /// </summary>
 public class RedisLockServiceTests
 {
-    private DistributedLockOptions CreateDefaultOptions()
-    {
-        return new DistributedLockOptions
-        {
-            LockExpirationSeconds = 5,
-            MaxRetryAttempts = 3,
-            RetryDelayMilliseconds = 100
-        };
-    }
+    private static DistributedLockOptions CreateDefaultOptions() =>
+        new DistributedLockOptions { LockExpirationSeconds = 5 };
 
     private Mock<IRedisConnectionProvider> CreateMockProvider(Mock<IConnectionMultiplexer> mockConnection)
     {

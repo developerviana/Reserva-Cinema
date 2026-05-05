@@ -1,75 +1,59 @@
-using FluentAssertions;
+using System.Net;
+using System.Net.Http.Json;
+using ReservaCinema.API.Tests.Setup;
 using ReservaCinema.Application.DTOs.Sessions;
+using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.API.Tests.Controllers.Sessions;
 
-/// <summary>
-/// Testes de integração para GetSessionById endpoint.
-/// </summary>
-public class GetSessionIntegrationTests
+public class GetSessionIntegrationTests : IAsyncLifetime
 {
-    [Fact]
-    public void GetSessionById_WithValidSessionResponse_ShouldReturnExpectedData()
+    private CustomWebApplicationFactory<Program> _factory = null!;
+    private HttpClient _client = null!;
+
+    public async Task InitializeAsync()
     {
-        // Arrange
-        var sessionId = Guid.NewGuid();
-        var futureTime = DateTime.UtcNow.AddHours(1);
-        var createdAt = DateTime.UtcNow;
+        _factory = new CustomWebApplicationFactory<Program>();
+        _client = _factory.CreateClient();
+        await Task.CompletedTask;
+    }
 
-        var expectedResponse = new SessionResponse
-        {
-            Id = sessionId,
-            MovieTitle = "The Matrix",
-            StartTime = futureTime,
-            RoomNumber = "A1",
-            TotalSeats = 100,
-            AvailableSeats = 100,
-            TicketPrice = 25.50m,
-            CreatedAt = createdAt,
-            IsActive = true,
-            DurationMinutes = 136,
-            RatingClassification = "14"
-        };
-
-        // Act
-        var result = expectedResponse;
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Id.Should().Be(sessionId);
-        result.MovieTitle.Should().Be("The Matrix");
-        result.RoomNumber.Should().Be("A1");
-        result.TotalSeats.Should().Be(100);
-        result.AvailableSeats.Should().Be(100);
-        result.TicketPrice.Should().Be(25.50m);
-        result.IsActive.Should().BeTrue();
-        result.DurationMinutes.Should().Be(136);
-        result.RatingClassification.Should().Be("14");
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Fact]
-    public void GetSessionById_WithValidSessionResponse_ShouldHaveCorrectTimestamps()
+    public async Task GetSessionById_ComSessaoExistente_DeveRetornar200ComDados()
     {
-        // Arrange
-        var createdAt = DateTime.UtcNow;
-        var sessionResponse = new SessionResponse
-        {
-            Id = Guid.NewGuid(),
-            MovieTitle = "Inception",
-            StartTime = DateTime.UtcNow.AddHours(2),
-            RoomNumber = "B2",
-            TotalSeats = 150,
-            AvailableSeats = 120,
-            TicketPrice = 30.00m,
-            CreatedAt = createdAt,
-            IsActive = true
-        };
+        // Arrange — cria sessão via POST para garantir estado real no banco
+        var createRequest = new CreateSessionRequestBuilder().WithMovieTitle("Matrix").Build();
+        var createResponse = await _client.PostAsJsonAsync("/api/sessions", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        var created = await createResponse.Content.ReadFromJsonAsync<SessionResponse>();
+        var sessionId = created!.Id;
 
         // Act
-        var result = sessionResponse;
+        var response = await _client.GetAsync($"/api/sessions/{sessionId}");
 
         // Assert
-        result.CreatedAt.Should().Be(createdAt);
-        result.UpdatedAt.Should().BeNull();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("Matrix");
+    }
+
+    [Fact]
+    public async Task GetSessionById_ComIdInexistente_DeveRetornar404()
+    {
+        // Arrange
+        var nonExistentId = Guid.NewGuid();
+
+        // Act
+        var response = await _client.GetAsync($"/api/sessions/{nonExistentId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

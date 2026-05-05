@@ -1,127 +1,188 @@
-using Moq;
-using ReservaCinema.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using ReservaCinema.Infrastructure.Persistence;
+using ReservaCinema.Infrastructure.Persistence.Repositories;
 using ReservaCinema.Tests.Shared.Builders;
-using ReservaCinema.Tests.Shared.Mocks;
 
 namespace ReservaCinema.Infrastructure.Tests.Repositories;
 
-/// <summary>
-/// Testes para o repositório de sessões.
-/// </summary>
 public class SessionRepositoryTests
 {
-    [Fact]
-    public async Task GetByIdAsync_WithValidId_ShouldReturnSession()
+    private static ReservaCinemaDbContext CreateDbContext()
     {
-        // Arrange
-        var sessionId = Guid.NewGuid();
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
-        
-        var expectedSession = new SessionBuilder()
-            .WithId(sessionId)
-            .WithMovieTitle("Test Movie")
-            .Build();
-        
-        mockRepository.Setup(r => r.GetByIdAsync(sessionId))
-            .ReturnsAsync(expectedSession);
-
-        // Act
-        var result = await mockRepository.Object.GetByIdAsync(sessionId);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(sessionId);
-        result.MovieTitle.Should().Be("Test Movie");
+        var options = new DbContextOptionsBuilder<ReservaCinemaDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        return new ReservaCinemaDbContext(options);
     }
 
     [Fact]
-    public async Task GetByIdAsync_WithInvalidId_ShouldReturnNull()
+    public async Task AddAsync_ComSessaoValida_DevePersistirERetornar()
     {
         // Arrange
-        var invalidId = Guid.NewGuid();
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+        var session = new SessionBuilder().Build();
 
         // Act
-        var result = await mockRepository.Object.GetByIdAsync(invalidId);
+        var result = await repository.AddAsync(session);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(session.Id);
+        context.Sessions.Count().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ComIdExistente_DeveRetornarSessao()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+        var session = new SessionBuilder().WithMovieTitle("Matrix").Build();
+        await repository.AddAsync(session);
+
+        // Act
+        var result = await repository.GetByIdAsync(session.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(session.Id);
+        result.MovieTitle.Should().Be("Matrix");
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ComIdInexistente_DeveRetornarNull()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+
+        // Act
+        var result = await repository.GetByIdAsync(Guid.NewGuid());
 
         // Assert
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task AddAsync_WithValidSession_ShouldReturnSession()
+    public async Task GetAllAsync_DeveRetornarApenasSesoesAtivas()
     {
         // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+
+        var ativa = new SessionBuilder().WithMovieTitle("Ativa").Build();
+        var inativa = new SessionBuilder().WithMovieTitle("Inativa").WithIsActive(false).Build();
+        await repository.AddAsync(ativa);
+        await repository.AddAsync(inativa);
+
+        // Act
+        var result = await repository.GetAllAsync();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.Single().MovieTitle.Should().Be("Ativa");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_DeveOrdenarPorStartTime()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+
+        var segunda = new SessionBuilder().WithStartTime(DateTime.UtcNow.AddHours(2)).Build();
+        var primeira = new SessionBuilder().WithStartTime(DateTime.UtcNow.AddHours(1)).Build();
+        await repository.AddAsync(segunda);
+        await repository.AddAsync(primeira);
+
+        // Act
+        var result = (await repository.GetAllAsync()).ToList();
+
+        // Assert
+        result[0].StartTime.Should().BeBefore(result[1].StartTime);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ComSessaoExistente_DeveAtualizarCampos()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+        var session = new SessionBuilder().WithMovieTitle("Original").Build();
+        await repository.AddAsync(session);
+
+        session.MovieTitle = "Atualizado";
+        session.UpdatedAt = DateTime.UtcNow;
+
+        // Act
+        var result = await repository.UpdateAsync(session);
+
+        // Assert
+        result.MovieTitle.Should().Be("Atualizado");
+        var persisted = await context.Sessions.FindAsync(session.Id);
+        persisted!.MovieTitle.Should().Be("Atualizado");
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ComIdExistente_DeveFazerSoftDelete()
+    {
+        // Arrange
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
         var session = new SessionBuilder().Build();
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
-        
-        mockRepository.Setup(r => r.AddAsync(It.IsAny<Session>()))
-            .ReturnsAsync((Session s) => s);
+        await repository.AddAsync(session);
 
         // Act
-        var result = await mockRepository.Object.AddAsync(session);
+        var result = await repository.DeleteAsync(session.Id);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Id.Should().Be(session.Id);
+        result.Should().BeTrue();
+        var persisted = await context.Sessions.FindAsync(session.Id);
+        persisted!.IsActive.Should().BeFalse();
     }
 
     [Fact]
-    public async Task GetAllAsync_ShouldReturnAllSessions()
+    public async Task DeleteAsync_ComIdInexistente_DeveRetornarFalse()
     {
         // Arrange
-        var sessions = new List<Session>
-        {
-            new SessionBuilder().WithMovieTitle("Movie 1").Build(),
-            new SessionBuilder().WithMovieTitle("Movie 2").Build(),
-            new SessionBuilder().WithMovieTitle("Movie 3").Build()
-        };
-        
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
-        mockRepository.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(sessions);
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
 
         // Act
-        var result = await mockRepository.Object.GetAllAsync();
+        var result = await repository.DeleteAsync(Guid.NewGuid());
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().Contain(s => s.MovieTitle == "Movie 1");
-        result.Should().Contain(s => s.MovieTitle == "Movie 2");
-        result.Should().Contain(s => s.MovieTitle == "Movie 3");
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public async Task DeleteAsync_WithValidId_ShouldReturnTrue()
+    public async Task ExistsAsync_ComIdExistente_DeveRetornarTrue()
     {
         // Arrange
-        var sessionId = Guid.NewGuid();
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
-        
-        mockRepository.Setup(r => r.DeleteAsync(sessionId))
-            .ReturnsAsync(true);
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
+        var session = new SessionBuilder().Build();
+        await repository.AddAsync(session);
 
         // Act
-        var result = await mockRepository.Object.DeleteAsync(sessionId);
+        var result = await repository.ExistsAsync(session.Id);
 
         // Assert
         result.Should().BeTrue();
     }
 
     [Fact]
-    public async Task ExistsAsync_WithValidId_ShouldReturnTrue()
+    public async Task ExistsAsync_ComIdInexistente_DeveRetornarFalse()
     {
         // Arrange
-        var sessionId = Guid.NewGuid();
-        var mockRepository = RepositoryMockFactory.CreateSessionRepositoryMock();
-        
-        mockRepository.Setup(r => r.ExistsAsync(sessionId))
-            .ReturnsAsync(true);
+        await using var context = CreateDbContext();
+        var repository = new SessionRepository(context);
 
         // Act
-        var result = await mockRepository.Object.ExistsAsync(sessionId);
+        var result = await repository.ExistsAsync(Guid.NewGuid());
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 }
