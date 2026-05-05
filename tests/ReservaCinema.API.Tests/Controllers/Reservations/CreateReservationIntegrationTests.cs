@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using ReservaCinema.API;
 using ReservaCinema.API.Tests.Setup;
 
@@ -9,6 +10,8 @@ namespace ReservaCinema.API.Tests.Controllers.Reservations;
 /// <summary>
 /// Testes de integração HTTP para POST /api/reservations endpoint.
 /// Testa requisições reais contra o endpoint usando WebApplicationFactory.
+/// Atualizado: testes de sucesso agora criam sessão antes de criar reserva,
+/// pois o serviço valida corretamente a existência da sessão (comportamento correto implementado).
 /// </summary>
 public class CreateReservationIntegrationTests : IAsyncLifetime
 {
@@ -29,13 +32,31 @@ public class CreateReservationIntegrationTests : IAsyncLifetime
         await Task.CompletedTask;
     }
 
+    private async Task<Guid> CreateSessionAsync()
+    {
+        var sessionRequest = new
+        {
+            movieTitle = "Filme Teste",
+            startTime = DateTime.UtcNow.AddHours(2),
+            roomNumber = "A1",
+            totalSeats = 100,
+            ticketPrice = 30.00m
+        };
+        var sessionResponse = await _client.PostAsJsonAsync("/api/sessions", sessionRequest);
+        sessionResponse.EnsureSuccessStatusCode();
+        var body = await sessionResponse.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(body);
+        return json.RootElement.GetProperty("id").GetGuid();
+    }
+
     [Fact]
     public async Task CreateReservation_WithValidData_ShouldReturn201Created()
     {
         // Arrange
+        var sessionId = await CreateSessionAsync();
         var request = new
         {
-            sessionId = Guid.NewGuid(),
+            sessionId,
             userId = "user-123",
             seatNumbers = new[] { "A1", "A2" }
         };
@@ -105,9 +126,10 @@ public class CreateReservationIntegrationTests : IAsyncLifetime
     public async Task CreateReservation_ShouldReturnCreatedResponse_WithAllRequiredFields()
     {
         // Arrange
+        var sessionId = await CreateSessionAsync();
         var request = new
         {
-            sessionId = Guid.NewGuid(),
+            sessionId,
             userId = "user-456",
             seatNumbers = new[] { "B1", "B2" }
         };

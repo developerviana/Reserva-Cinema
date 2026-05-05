@@ -1,40 +1,60 @@
 using FluentAssertions;
 using Moq;
 using ReservaCinema.Application.DTOs.Reservations;
+using ReservaCinema.Application.Persistence.Repositories;
 using ReservaCinema.Application.Services;
+using ReservaCinema.Domain.Entities;
 using ReservaCinema.Domain.Exceptions;
 using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.Application.Tests.Services;
 
 /// <summary>
-/// Testes de integração para ReservationService com lock distribuído.
-/// Valida o padrão de aquisição de lock durante criação de reservas.
-/// TDD: Red → Green → Refactor
+/// Testes de comportamento do lock distribuído no ReservationService.
+/// Atualizado: construtor de ReservationService expandido com ISessionRepository e IReservationRepository
+/// após implementação real de persistência (mudança arquitetural documentada).
 /// </summary>
 public class ReservationServiceWithLockTests
 {
+    private static ReservationService CreateService(
+        Mock<IDistributedLockService> mockLockService,
+        Session? session = null)
+    {
+        var mockSessionRepo = new Mock<ISessionRepository>();
+        var sessionToReturn = session ?? new SessionBuilder().WithAvailableSeats(10).Build();
+        mockSessionRepo
+            .Setup(x => x.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(sessionToReturn);
+
+        var mockReservationRepo = new Mock<IReservationRepository>();
+        mockReservationRepo
+            .Setup(x => x.AddAsync(It.IsAny<Reservation>()))
+            .ReturnsAsync((Reservation r) => r);
+
+        return new ReservationService(
+            mockSessionRepo.Object,
+            mockReservationRepo.Object,
+            mockLockService.Object);
+    }
+
     [Fact]
     public async Task CreateReservationAsync_ShouldAcquireLockBeforeProcessing()
     {
-        // Arrange
         var mockLockService = new Mock<IDistributedLockService>();
         mockLockService
             .Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
-            .ReturnsAsync(Guid.NewGuid().ToString()); // Sucesso na aquisição
+            .ReturnsAsync(Guid.NewGuid().ToString());
 
-        var service = new ReservationService(mockLockService.Object);
+        var service = CreateService(mockLockService);
         var request = new CreateReservationRequest
         {
             SessionId = Guid.NewGuid(),
             UserId = "user-123",
-            SeatNumbers = new[] { "A1", "A2" }
+            SeatNumbers = ["A1", "A2"]
         };
 
-        // Act
         var response = await service.CreateReservationAsync(request);
 
-        // Assert
         response.Should().NotBeNull();
         mockLockService.Verify(
             x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()),
@@ -45,7 +65,6 @@ public class ReservationServiceWithLockTests
     [Fact]
     public async Task CreateReservationAsync_ShouldReleaseLockAfterProcessing()
     {
-        // Arrange
         var lockToken = Guid.NewGuid().ToString();
         var mockLockService = new Mock<IDistributedLockService>();
         mockLockService
@@ -55,18 +74,16 @@ public class ReservationServiceWithLockTests
             .Setup(x => x.ReleaseLockAsync(It.IsAny<string>(), lockToken))
             .ReturnsAsync(true);
 
-        var service = new ReservationService(mockLockService.Object);
+        var service = CreateService(mockLockService);
         var request = new CreateReservationRequest
         {
             SessionId = Guid.NewGuid(),
             UserId = "user-123",
-            SeatNumbers = new[] { "A1" }
+            SeatNumbers = ["A1"]
         };
 
-        // Act
         var response = await service.CreateReservationAsync(request);
 
-        // Assert
         response.Should().NotBeNull();
         mockLockService.Verify(
             x => x.ReleaseLockAsync(It.IsAny<string>(), lockToken),
@@ -75,23 +92,21 @@ public class ReservationServiceWithLockTests
     }
 
     [Fact]
-    public async Task CreateReservationAsync_WhenLockAcquisitionFails_ShouldThrowException()
+    public async Task CreateReservationAsync_WhenLockAcquisitionFails_ShouldThrowConflictException()
     {
-        // Arrange
         var mockLockService = new Mock<IDistributedLockService>();
         mockLockService
             .Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
-            .ReturnsAsync((string?)null); // Falha na aquisição
+            .ReturnsAsync((string?)null);
 
-        var service = new ReservationService(mockLockService.Object);
+        var service = CreateService(mockLockService);
         var request = new CreateReservationRequest
         {
             SessionId = Guid.NewGuid(),
             UserId = "user-123",
-            SeatNumbers = new[] { "A1" }
+            SeatNumbers = ["A1"]
         };
 
-        // Act & Assert
         await FluentActions.Invoking(() => service.CreateReservationAsync(request))
             .Should()
             .ThrowAsync<ConflictException>()

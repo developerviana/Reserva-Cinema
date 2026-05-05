@@ -1,75 +1,70 @@
 using ReservaCinema.Application.DTOs.Reservations;
+using ReservaCinema.Application.Persistence.Repositories;
 using ReservaCinema.Application.Services.Interfaces;
 using ReservaCinema.Domain.Entities;
 using ReservaCinema.Domain.Exceptions;
 
 namespace ReservaCinema.Application.Services;
 
-/// <summary>
-/// Serviço para gerenciamento de reservas de assentos.
-/// Implementa padrão de lock distribuído para evitar race conditions em reservas simultâneas.
-/// </summary>
 public class ReservationService : IReservationService
 {
+    private readonly ISessionRepository _sessionRepository;
+    private readonly IReservationRepository _reservationRepository;
     private readonly IDistributedLockService _lockService;
-    private const int LockExpirationSeconds = 5;
 
-    public ReservationService(IDistributedLockService lockService)
+    // Regra de negócio: processamento de reserva deve concluir em até 30 segundos
+    private static readonly TimeSpan ReservationLockExpiration = TimeSpan.FromSeconds(30);
+
+    public ReservationService(
+        ISessionRepository sessionRepository,
+        IReservationRepository reservationRepository,
+        IDistributedLockService lockService)
     {
-        _lockService = lockService ?? throw new ArgumentNullException(nameof(lockService));
+        _sessionRepository = sessionRepository;
+        _reservationRepository = reservationRepository;
+        _lockService = lockService;
     }
 
     public async Task<CreateReservationResponse> CreateReservationAsync(CreateReservationRequest request)
     {
-        // Validação de entrada
-        if (request.SessionId == Guid.Empty)
-            throw new ArgumentException("SessionId inválido.");
+        var session = await _sessionRepository.GetByIdAsync(request.SessionId)
+            ?? throw new KeyNotFoundException($"Sessão {request.SessionId} não encontrada.");
 
-        if (string.IsNullOrWhiteSpace(request.UserId))
-            throw new ArgumentException("UserId não pode estar vazio.");
+        if (session.AvailableSeats < request.SeatNumbers.Length)
+            throw new ConflictException("Assentos insuficientes disponíveis para esta sessão.");
 
-        if (request.SeatNumbers == null || request.SeatNumbers.Length == 0)
-            throw new ArgumentException("Deve haver pelo menos um assento a ser reservado.");
-
-        // Validação de limite de assentos
-        if (request.SeatNumbers.Length > 10)
-            throw new ArgumentException("Máximo de 10 assentos por reserva.");
-
-        // Validação de assentos duplicados
-        var uniqueSeats = request.SeatNumbers.Distinct();
-        if (uniqueSeats.Count() != request.SeatNumbers.Length)
-            throw new ArgumentException("Não pode haver assentos duplicados na reserva.");
-
-        // Adquire lock para cada assento para evitar race condition
-        var lockKey = $"seat:{string.Join(":", request.SeatNumbers)}";
-        var lockToken = await _lockService.AcquireLockAsync(
-            lockKey,
-            TimeSpan.FromSeconds(LockExpirationSeconds));
+        var lockKey = $"reservation:session:{request.SessionId}:seats:{string.Join(":", request.SeatNumbers.OrderBy(s => s))}";
+        var lockToken = await _lockService.AcquireLockAsync(lockKey, ReservationLockExpiration);
 
         if (lockToken == null)
             throw new ConflictException("Não foi possível adquirir lock para reserva. Tente novamente.");
 
         try
         {
-            // Simula criação de reserva (em produção, integraria com banco de dados)
-            var reservationId = $"res-{Guid.NewGuid().ToString().Substring(0, 8)}";
-            var expiresAt = DateTime.UtcNow.AddHours(1);
-            var totalAmount = request.SeatNumbers.Length * 25.50m;
-
-            var response = new CreateReservationResponse
+            var reservation = new Reservation
             {
-                ReservationId = reservationId,
+                Id = Guid.NewGuid().ToString(),
+                SessionId = request.SessionId,
+                UserId = request.UserId,
                 Status = "pending",
-                ExpiresAt = expiresAt,
-                Seats = request.SeatNumbers,
-                TotalAmount = totalAmount
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                TotalAmount = request.SeatNumbers.Length * session.TicketPrice,
             };
+            reservation.SetSeats(request.SeatNumbers);
 
-            return await Task.FromResult(response);
+            await _reservationRepository.AddAsync(reservation);
+
+            return new CreateReservationResponse
+            {
+                ReservationId = reservation.Id,
+                Status = reservation.Status,
+                ExpiresAt = reservation.ExpiresAt,
+                Seats = request.SeatNumbers,
+                TotalAmount = reservation.TotalAmount
+            };
         }
         finally
         {
-            // Sempre libera o lock, mesmo em caso de exceção
             await _lockService.ReleaseLockAsync(lockKey, lockToken);
         }
     }
