@@ -17,6 +17,7 @@ public class ReservaCinemaDbContext : DbContext
     /// Tabela de sessões de cinema.
     /// </summary>
     public DbSet<Session> Sessions { get; set; }
+    public DbSet<Reservation> Reservations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

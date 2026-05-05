@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReservaCinema.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReservaCinema.Infrastructure.Persistence;
 namespace ReservaCinema.Infrastructure.Migrations
 {
     [DbContext(typeof(ReservaCinemaDbContext))]
-    partial class ReservaCinemaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505020654_AddReservationsTable")]
+    partial class AddReservationsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

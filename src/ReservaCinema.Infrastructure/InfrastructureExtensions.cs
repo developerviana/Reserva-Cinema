@@ -32,6 +32,7 @@ public static class InfrastructureExtensions
 
         // Register Repositories
         services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IReservationRepository, ReservationRepository>();
 
         // Configure Redis for Distributed Lock
         var redisConnectionString = configuration.GetConnectionString("Redis")

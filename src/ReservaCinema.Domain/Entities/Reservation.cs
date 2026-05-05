@@ -21,9 +21,9 @@ public class Reservation
     public string UserId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Lista de assentos reservados (separados por vírgula).
+    /// Lista de assentos reservados, armazenada como CSV (ex: "A1,A2,B3").
     /// </summary>
-    public string SeatsJson { get; set; } = string.Empty;
+    public string Seats { get; set; } = string.Empty;
 
     /// <summary>
     /// Status da reserva: pending, confirmed, cancelled.
@@ -55,10 +55,10 @@ public class Reservation
     /// </summary>
     public string[] GetSeats()
     {
-        if (string.IsNullOrWhiteSpace(SeatsJson))
+        if (string.IsNullOrWhiteSpace(Seats))
             return Array.Empty<string>();
 
-        return SeatsJson.Split(',', System.StringSplitOptions.TrimEntries);
+        return Seats.Split(',', System.StringSplitOptions.TrimEntries);
     }
 
     /// <summary>
@@ -66,6 +66,6 @@ public class Reservation
     /// </summary>
     public void SetSeats(string[] seats)
     {
-        SeatsJson = seats.Length > 0 ? string.Join(",", seats) : string.Empty;
+        Seats = seats.Length > 0 ? string.Join(",", seats) : string.Empty;
     }
 }
