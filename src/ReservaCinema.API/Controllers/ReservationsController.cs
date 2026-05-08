@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ReservaCinema.Application.DTOs.Reservations;
 using ReservaCinema.Application.Services.Interfaces;
 using ReservaCinema.Domain.Exceptions;
+using ReservaCinema.Application.Validators.Reservations;
 
 namespace ReservaCinema.API.Controllers;
 
@@ -14,6 +15,7 @@ namespace ReservaCinema.API.Controllers;
 public class ReservationsController : ControllerBase
 {
     private readonly IReservationService _reservationService;
+    private readonly ConfirmPaymentRequestValidator _confirmValidator = new();
 
     public ReservationsController(IReservationService reservationService)
     {
@@ -57,6 +59,45 @@ public class ReservationsController : ControllerBase
         catch (ConflictException ex)
         {
             return Conflict(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Confirma o pagamento de uma reserva pendente.
+    /// </summary>
+    /// <param name="id">ID da reserva.</param>
+    /// <param name="request">Dados do pagamento.</param>
+    /// <response code="200">Pagamento confirmado com sucesso.</response>
+    /// <response code="400">Dados inválidos.</response>
+    /// <response code="404">Reserva não encontrada.</response>
+    /// <response code="410">Reserva expirada.</response>
+    [HttpPost("{id}/confirm")]
+    [ProducesResponseType(typeof(ConfirmPaymentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status410Gone)]
+    public async Task<IActionResult> ConfirmPayment(string id, [FromBody] ConfirmPaymentRequest request)
+    {
+        var validation = await _confirmValidator.ValidateAsync(request);
+        if (!validation.IsValid)
+            return BadRequest(new { errors = validation.Errors.Select(e => e.ErrorMessage) });
+
+        try
+        {
+            var response = await _reservationService.ConfirmPaymentAsync(id, request);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ReservationExpiredException ex)
+        {
+            return StatusCode(StatusCodes.Status410Gone, new
+            {
+                error = "RESERVATION_EXPIRED",
+                message = ex.Message
+            });
         }
     }
 }

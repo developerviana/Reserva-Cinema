@@ -18,6 +18,7 @@ public class ReservationBuilder
     public ReservationBuilder WithSeats(params string[] seats) { _seats = seats; return this; }
     public ReservationBuilder WithStatus(string status) { _status = status; return this; }
     public ReservationBuilder WithTotalAmount(decimal totalAmount) { _totalAmount = totalAmount; return this; }
+    public ReservationBuilder WithExpiresAt(DateTime expiresAt) { _expiresAt = expiresAt; return this; }
 
     public Reservation Build()
     {

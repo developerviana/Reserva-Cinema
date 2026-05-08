@@ -1,4 +1,5 @@
 using ReservaCinema.Application.DTOs.Reservations;
+using ReservaCinema.Domain.Exceptions;
 
 namespace ReservaCinema.Application.Services.Interfaces;
 
@@ -10,8 +11,12 @@ public interface IReservationService
     /// <summary>
     /// Cria uma nova reserva.
     /// </summary>
-    /// <param name="request">Dados da reserva a ser criada.</param>
-    /// <returns>Response com dados da reserva criada.</returns>
-    /// <exception cref="ArgumentException">Lançada se dados inválidos ou assentos indisponíveis.</exception>
     Task<CreateReservationResponse> CreateReservationAsync(CreateReservationRequest request);
+
+    /// <summary>
+    /// Confirma o pagamento de uma reserva pendente.
+    /// </summary>
+    /// <exception cref="KeyNotFoundException">Reserva não encontrada.</exception>
+    /// <exception cref="ReservationExpiredException">Reserva expirada.</exception>
+    Task<ConfirmPaymentResponse> ConfirmPaymentAsync(string reservationId, ConfirmPaymentRequest request);
 }

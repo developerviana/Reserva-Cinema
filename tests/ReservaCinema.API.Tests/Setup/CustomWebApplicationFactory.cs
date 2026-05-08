@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using ReservaCinema.Application.Services;
+using ReservaCinema.Domain.Entities;
 using ReservaCinema.Infrastructure.Persistence;
+using ReservaCinema.Tests.Shared.Builders;
 
 namespace ReservaCinema.API.Tests.Setup;
 
@@ -38,5 +40,23 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
         });
 
         builder.UseEnvironment("Test");
+    }
+
+    /// <summary>
+    /// Cria diretamente no banco uma reserva já expirada para testar o cenário 410 Gone.
+    /// </summary>
+    public async Task<string> CreateExpiredReservationAsync()
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ReservaCinemaDbContext>();
+
+        var reservation = new ReservationBuilder()
+            .WithExpiresAt(DateTime.UtcNow.AddMinutes(-10))
+            .Build();
+
+        context.Reservations.Add(reservation);
+        await context.SaveChangesAsync();
+
+        return reservation.Id;
     }
 }

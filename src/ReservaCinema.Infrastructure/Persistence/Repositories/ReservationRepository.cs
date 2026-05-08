@@ -25,4 +25,11 @@ public class ReservationRepository : IReservationRepository
             .AsNoTracking()
             .Where(r => r.SessionId == sessionId && r.Status != "cancelled")
             .ToListAsync();
+
+    public async Task<Reservation> UpdateAsync(Reservation reservation)
+    {
+        _context.Reservations.Update(reservation);
+        await _context.SaveChangesAsync();
+        return reservation;
+    }
 }

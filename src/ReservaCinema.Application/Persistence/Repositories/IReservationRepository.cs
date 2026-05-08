@@ -7,4 +7,5 @@ public interface IReservationRepository
     Task<Reservation> AddAsync(Reservation reservation);
     Task<Reservation?> GetByIdAsync(string id);
     Task<IEnumerable<Reservation>> GetBySessionIdAsync(Guid sessionId);
+    Task<Reservation> UpdateAsync(Reservation reservation);
 }

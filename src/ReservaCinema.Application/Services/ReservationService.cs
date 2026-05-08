@@ -68,4 +68,32 @@ public class ReservationService : IReservationService
             await _lockService.ReleaseLockAsync(lockKey, lockToken);
         }
     }
+
+    public async Task<ConfirmPaymentResponse> ConfirmPaymentAsync(string reservationId, ConfirmPaymentRequest request)
+    {
+        var reservation = await _reservationRepository.GetByIdAsync(reservationId)
+            ?? throw new KeyNotFoundException($"Reserva {reservationId} não encontrada.");
+
+        if (DateTime.UtcNow > reservation.ExpiresAt)
+            throw new ReservationExpiredException(reservation.ExpiresAt);
+
+        var paidAt = DateTime.UtcNow;
+
+        reservation.Status = "confirmed";
+        reservation.SaleId = $"sale-{Guid.NewGuid()}";
+        reservation.PaymentMethod = request.PaymentMethod;
+        reservation.TransactionId = request.TransactionId;
+        reservation.PaidAt = paidAt;
+        reservation.UpdatedAt = paidAt;
+
+        await _reservationRepository.UpdateAsync(reservation);
+
+        return new ConfirmPaymentResponse
+        {
+            SaleId = reservation.SaleId,
+            Status = reservation.Status,
+            Seats = reservation.GetSeats(),
+            PaidAt = paidAt
+        };
+    }
 }

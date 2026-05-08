@@ -51,6 +51,26 @@ public class Reservation
     public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
+    /// ID da venda gerado ao confirmar o pagamento.
+    /// </summary>
+    public string? SaleId { get; set; }
+
+    /// <summary>
+    /// Método de pagamento utilizado (ex: credit_card).
+    /// </summary>
+    public string? PaymentMethod { get; set; }
+
+    /// <summary>
+    /// ID da transação fornecido pelo gateway de pagamento.
+    /// </summary>
+    public string? TransactionId { get; set; }
+
+    /// <summary>
+    /// Data e hora em que o pagamento foi confirmado.
+    /// </summary>
+    public DateTime? PaidAt { get; set; }
+
+    /// <summary>
     /// Getter para desserializar os assentos do JSON.
     /// </summary>
     public string[] GetSeats()
